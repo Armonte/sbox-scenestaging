@@ -500,6 +500,8 @@ public sealed partial class Session
 
 		EditMode?.DrawGizmos( selectedTrackView, timeRange );
 
+		DrawBoneGizmos( selectedTrackView, PlayheadTime );
+
 		var timeScale = MovieTimeScale.FromDurationScale( TimeScale );
 
 		(timeScale * MovieTime.FromSeconds( RealTime.Now )).GetFrameIndex( 1d, out var timeOffset );
