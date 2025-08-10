@@ -3,17 +3,28 @@
   "GameObjects": [
     {
       "__guid": "f23dd974-06c1-4453-94bd-3f49ae112b37",
+      "__version": 1,
       "Flags": 0,
       "Name": "Not Prefab",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
       "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkInterpolation": true,
+      "NetworkOrphaned": 0,
+      "OwnerTransfer": 1,
       "Components": [
         {
           "__type": "Sandbox.ModelRenderer",
           "__guid": "e16cb5f8-bc6a-40a0-9218-3d3f3b823782",
+          "__enabled": true,
           "BodyGroups": 18446744073709551615,
           "CreateAttachments": false,
           "MaterialGroup": null,
           "MaterialOverride": null,
+          "Materials": null,
           "Model": "models/dev/sphere.vmdl",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
@@ -33,6 +44,7 @@
         {
           "__type": "Sandbox.ActionGraphs.ActionsInvoker",
           "__guid": "ef474a02-2114-4114-bd80-9d722581900a",
+          "__enabled": true,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -86,7 +98,7 @@
                 "DstName": "_target"
               },
               {
-                "Id": 9,
+                "Id": 8,
                 "Value": "1,0,0,1",
                 "DstId": 5,
                 "DstName": "_value"
@@ -104,28 +116,69 @@
           "OnFixedUpdateAction": null,
           "OnUpdateAction": null
         }
-      ]
+      ],
+      "Children": []
     },
     {
       "__guid": "eba287e1-d8e6-4243-ae1a-860e4799196d",
-      "Flags": 0,
-      "Name": "Prefab",
-      "Position": "0,95.9097,0",
-      "Enabled": true,
+      "__version": 1,
       "__Prefab": "scenes/tests/actiongraph/sphere_with_action.prefab",
-      "__PrefabVariables": {}
+      "__PrefabInstancePatch": {
+        "AddedObjects": [],
+        "RemovedObjects": [],
+        "PropertyOverrides": [
+          {
+            "Target": {
+              "Type": "GameObject",
+              "IdValue": "f23dd974-06c1-4453-94bd-3f49ae112b37"
+            },
+            "Property": "Name",
+            "Value": "Prefab"
+          },
+          {
+            "Target": {
+              "Type": "GameObject",
+              "IdValue": "f23dd974-06c1-4453-94bd-3f49ae112b37"
+            },
+            "Property": "Position",
+            "Value": "0,95.9097,0"
+          },
+          {
+            "Target": {
+              "Type": "GameObject",
+              "IdValue": "f23dd974-06c1-4453-94bd-3f49ae112b37"
+            },
+            "Property": "NetworkInterpolation",
+            "Value": false
+          }
+        ],
+        "MovedObjects": []
+      },
+      "__PrefabIdToInstanceId": {
+        "f23dd974-06c1-4453-94bd-3f49ae112b37": "eba287e1-d8e6-4243-ae1a-860e4799196d",
+        "e16cb5f8-bc6a-40a0-9218-3d3f3b823782": "6cc43f36-8f95-4d8d-b8db-c583532eb625",
+        "ef474a02-2114-4114-bd80-9d722581900a": "8a2c5131-fbbe-4f30-8ede-87b1270c2d05"
+      }
     },
     {
       "__guid": "e3e67b91-1410-4646-b843-cc4bf51e2d3c",
+      "__version": 1,
       "Flags": 0,
       "Name": "Camera",
       "Position": "-186.9372,44.58511,7.364919",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
       "Tags": "maincamera",
       "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkInterpolation": true,
+      "NetworkOrphaned": 0,
+      "OwnerTransfer": 1,
       "Components": [
         {
           "__type": "Sandbox.CameraComponent",
           "__guid": "e84e58e6-9aa5-4bcb-8b51-4a6ca263e37b",
+          "__enabled": true,
           "BackgroundColor": "0.33333,0.46275,0.52157,1",
           "ClearFlags": "All",
           "FieldOfView": 60,
@@ -147,20 +200,28 @@
           "ZFar": 10000,
           "ZNear": 10
         }
-      ]
+      ],
+      "Children": []
     },
     {
       "__guid": "4d7f95e5-3bc6-4149-9f57-5e338dfec52e",
+      "__version": 1,
       "Flags": 0,
       "Name": "Sun",
       "Position": "0,0,256",
       "Rotation": "0.2602554,0.2805596,-0.6283123,0.6773309",
+      "Scale": "1,1,1",
       "Tags": "light_directional,light",
       "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkInterpolation": true,
+      "NetworkOrphaned": 0,
+      "OwnerTransfer": 1,
       "Components": [
         {
           "__type": "Sandbox.DirectionalLight",
           "__guid": "274b926d-599e-4b94-be16-97a6832c6007",
+          "__enabled": true,
           "FogMode": "Enabled",
           "FogStrength": 1,
           "LightColor": "0.91373,0.98039,1,1",
@@ -173,17 +234,28 @@
           "Shadows": true,
           "SkyColor": "0,0,0,0"
         }
-      ]
+      ],
+      "Children": []
     },
     {
       "__guid": "a5e74992-84ce-4449-9241-cd67c68440ea",
+      "__version": 1,
       "Flags": 0,
       "Name": "Scene Information",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
       "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkInterpolation": true,
+      "NetworkOrphaned": 0,
+      "OwnerTransfer": 1,
       "Components": [
         {
           "__type": "Sandbox.SceneInformation",
           "__guid": "341e4e1c-ab56-4be3-b7eb-d68799d47283",
+          "__enabled": true,
           "Author": null,
           "Changes": "",
           "Description": "",
@@ -198,18 +270,14 @@
           "Title": "Graph Conflict",
           "Version": null
         }
-      ]
+      ],
+      "Children": []
     }
   ],
   "SceneProperties": {
-    "FixedUpdateFrequency": 50,
-    "MaxFixedUpdates": 5,
-    "NetworkFrequency": 30,
     "NetworkInterpolation": true,
-    "PhysicsSubSteps": 1,
-    "ThreadedAnimation": true,
     "TimeScale": 1,
-    "UseFixedUpdate": true,
+    "WantsSystemScene": true,
     "Metadata": {
       "Title": "Graph Conflict",
       "Group": "Action Graph"
@@ -227,9 +295,9 @@
       "IncludedBodies": ""
     }
   },
-  "ResourceVersion": 2,
+  "ResourceVersion": 3,
   "Title": "Graph Conflict",
   "Description": null,
   "__references": [],
-  "__version": 2
+  "__version": 3
 }

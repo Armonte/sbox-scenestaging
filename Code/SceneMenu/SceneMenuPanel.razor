@@ -15,7 +15,9 @@
 
         <div class="sidebar">
 
-            @foreach (var group in ResourceLibrary.GetAll<SceneFile>().Where(x => x.ResourcePath.Contains("/tests/")).GroupBy(x => x.GetMetadata("Group", "None")).OrderBy(x => x.Key))
+            @foreach (var group in ResourceLibrary.GetAll<SceneFile>()
+                .Where(x => (x.ResourcePath ?? string.Empty).IndexOf("/tests/", System.StringComparison.OrdinalIgnoreCase) >= 0)
+                .GroupBy(x => x.GetMetadata("Group", "None")).OrderBy(x => x.Key))
             {
                 var c = SceneCategory == group.Key ? "active" : "";
 
@@ -29,7 +31,9 @@
 
         <div class="scene-list">
 
-            @foreach (var scene in ResourceLibrary.GetAll<SceneFile>().Where(x => x.ResourcePath.Contains("/tests/") && x.GetMetadata("Group", "None") == SceneCategory).OrderBy(x => x.GetMetadata("Title")))
+            @foreach (var scene in ResourceLibrary.GetAll<SceneFile>()
+                .Where(x => (x.ResourcePath ?? string.Empty).IndexOf("/tests/", System.StringComparison.OrdinalIgnoreCase) >= 0 && x.GetMetadata("Group", "None") == SceneCategory)
+                .OrderBy(x => x.GetMetadata("Title")))
             {
                 <SceneButton Scene="@scene" OnSelected=@OpenScene></SceneButton> 
             }
