@@ -45,8 +45,14 @@ namespace Reclaimer
 		
 		public void RequestClassSelection(TrinityClassType classType)
 		{
+			Log.Info($"RequestClassSelection called with {classType}");
+			Log.Info($"SpawnManager: {SpawnManager?.GameObject?.Name ?? "NULL"}");
+			Log.Info($"PlayerConnection: {PlayerConnection?.DisplayName ?? "NULL"}");
+			
 			if (SpawnManager != null && PlayerConnection != null)
 			{
+				Log.Info("Calling SpawnManager.SelectClassForPlayer");
+				
 				// Remove the UI and re-enable movement
 				CleanupUI();
 				EnablePlayerMovement();
@@ -54,6 +60,10 @@ namespace Reclaimer
 				// Request class selection
 				SpawnManager.SelectClassForPlayer(PlayerConnection, classType);
 				Log.Info($"Requested class: {classType}");
+			}
+			else
+			{
+				Log.Error($"Cannot request class selection - SpawnManager: {SpawnManager != null}, PlayerConnection: {PlayerConnection != null}");
 			}
 		}
 		
@@ -67,8 +77,6 @@ namespace Reclaimer
 				Log.Info("Player movement disabled");
 			}
 			
-			// Enable mouse cursor for UI interaction
-			Mouse.Visible = true;
 			Log.Info("Mouse cursor enabled for UI");
 		}
 		
@@ -82,8 +90,6 @@ namespace Reclaimer
 				Log.Info("Player movement enabled");
 			}
 			
-			// Hide mouse cursor (back to game mode)
-			Mouse.Visible = false;
 			Log.Info("Mouse cursor hidden for gameplay");
 		}
 		

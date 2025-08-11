@@ -1,9 +1,10 @@
 @using Sandbox;
 @using Sandbox.UI;
 @using Reclaimer;
+@using System.Threading.Tasks;
 @inherits PanelComponent
 
-<root class="class-selection-panel">
+<root class="class-selection-panel @(IsTransitioningOut ? "transitioning-out" : "")">
 	<div class="header">
 		<h1>Choose Your Trinity Class</h1>
 		<p>Select your role in the raid party</p>
@@ -15,15 +16,12 @@
 			<div class="class-icon">🐢</div>
 			<h3>Leo the Phranklyn</h3>
 			<div class="class-role">TANK</div>
-			<ul class="class-description" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0; list-style: none; padding: 0;">
+			<div class="class-description">
 				@foreach(var item in GetTankFeatures())
 				{
-					<li class="feature" style="color: rgba(255, 255, 255, 0.8); font-size: 14px; font-family: Poppins; line-height: 1.4; position: relative; padding-left: 20px;">
-						<span style="position: absolute; left: 0; color: #ffcc00;">•</span>
-						@(item.TrimStart('•', ' '))
-					</li>
+					<div class="feature">@item</div>
 				}
-			</ul>
+			</div>
 			<div class="class-status">
 				@if (SpawnManager?.TankCount >= 1)
 				{
@@ -36,18 +34,17 @@
 			</div>
 		</div>
 		
-		<!-- COMMENTED OUT TO DEBUG LEO CARD ONLY -->
-		<!--
+		
 		<div class="class-card @(CanSelectClass(TrinityClassType.Healer) ? "" : "disabled")"
 			 @onclick="@(() => SelectClass(TrinityClassType.Healer))">
 			<div class="class-icon">🥛</div>
 			<h3>Holy Milker Abby</h3>
 			<div class="class-role">HEALER</div>
 			<div class="class-description">
-				<div>Dual gun system</div>
-				<div>Milk resource management</div>
-				<div>Divine Spill ultimate</div>
-				<div>Portal teleportation</div>
+				@foreach(var item in GetHealerFeatures())
+				{
+					<div class="feature">@item</div>
+				}
 			</div>
 			<div class="class-status">
 				@if (SpawnManager?.HealerCount >= 2)
@@ -67,10 +64,10 @@
 			<h3>Mighty Trunk Warrior</h3>
 			<div class="class-role">DPS</div>
 			<div class="class-description">
-				<div>12-level trunk progression</div>
-				<div>Combo system</div>
-				<div>Reality-bending ultimates</div>
-				<div>Trunk pun obsession</div>
+				@foreach(var item in GetDPSFeatures())
+				{
+					<div class="feature">@item</div>
+				}
 			</div>
 			<div class="class-status">
 				@if (SpawnManager?.DPSCount >= 2)
@@ -83,7 +80,6 @@
 				}
 			</div>
 		</div>
-		-->
 	</div>
 	
 	<div class="party-status">
@@ -111,7 +107,9 @@
 
 @code {
 	TrinitySpawnManager SpawnManager => Scene?.GetAllComponents<TrinitySpawnManager>().FirstOrDefault();
-	ClassSelectionUI Selector => GameObject?.Components.Get<ClassSelectionUI>();
+	ClassSelectionUI Selector => Scene?.GetAllComponents<ClassSelectionUI>().FirstOrDefault();
+	
+	[Sync] public bool IsTransitioningOut { get; set; } = false;
 	
 	string[] GetTankFeatures()
 	{
@@ -121,6 +119,28 @@
 			"• High survivability", 
 			"• Summons Lil Frank",
 			"• Lactose intolerant"
+		};
+	}
+	
+	string[] GetHealerFeatures()
+	{
+		return new string[]
+		{
+			"• Dual gun system",
+			"• Milk resource management",
+			"• Divine Spill ultimate",
+			"• Portal teleportation"
+		};
+	}
+	
+	string[] GetDPSFeatures()
+	{
+		return new string[]
+		{
+			"• 12-level trunk progression",
+			"• Combo system",
+			"• Reality-bending ultimates", 
+			"• Trunk pun obsession"
 		};
 	}
 	
@@ -139,11 +159,15 @@
 	
 	void SelectClass(TrinityClassType classType)
 	{
-		if (!CanSelectClass(classType))
+		if (!CanSelectClass(classType) || IsTransitioningOut)
 		{
-			Log.Warning($"Cannot select {classType} - role is full");
+			Log.Warning($"Cannot select {classType} - role is full or already transitioning");
 			return;
 		}
+		
+		Log.Info($"Starting class selection: {classType}");
+		IsTransitioningOut = true;
+		StateHasChanged();
 		
 		Selector?.RequestClassSelection(classType);
 	}
@@ -153,7 +177,8 @@
 		return HashCode.Combine(
 			SpawnManager?.TankCount,
 			SpawnManager?.HealerCount,
-			SpawnManager?.DPSCount
+			SpawnManager?.DPSCount,
+			IsTransitioningOut
 		);
 	}
 }

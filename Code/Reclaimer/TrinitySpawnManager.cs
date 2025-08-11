@@ -86,6 +86,8 @@ namespace Reclaimer
 		{
 			if (!Networking.IsHost) return;
 			
+			Log.Info($"SelectClassForPlayer called - {channel.DisplayName} wants {classType}");
+			
 			if (!CanSelectClass(classType))
 			{
 				Log.Warning($"Cannot select {classType} - role limit reached");
@@ -94,16 +96,42 @@ namespace Reclaimer
 			
 			if (connectionToPlayer.TryGetValue(channel, out var oldPlayer) && oldPlayer.IsValid())
 			{
+				Log.Info($"Destroying old player: {oldPlayer.Name}");
 				oldPlayer.Destroy();
+			}
+			else
+			{
+				Log.Info("No old player found to destroy");
 			}
 			
 			SpawnPlayerWithClass(channel, classType);
+			
+			// Check if we should trigger game flow transition
+			CheckGameFlowTransition();
+		}
+		
+		void CheckGameFlowTransition()
+		{
+			var gameFlow = Scene.GetAllComponents<GameFlowManager>().FirstOrDefault();
+			if (gameFlow != null && gameFlow.CurrentState == GameState.ClassSelection)
+			{
+				// Check if we have minimum trinity composition
+				if (TankCount >= 1 && HealerCount >= 1 && DPSCount >= 1)
+				{
+					Log.Info($"Trinity composition achieved! Tank:{TankCount}, Healer:{HealerCount}, DPS:{DPSCount}");
+					// Let GameFlowManager handle the transition in its HandleClassSelection method
+				}
+			}
 		}
 		
 		void SpawnPlayerWithClass(Connection channel, TrinityClassType classType)
 		{
+			Log.Info($"SpawnPlayerWithClass called - Channel: {channel.DisplayName}, Class: {classType}");
+			
 			var spawnPoint = GetNextSpawnPoint();
 			GameObject playerPrefab = GetPrefabForClass(classType);
+			
+			Log.Info($"Spawn point: {spawnPoint.Position}, Prefab: {playerPrefab?.Name ?? "NULL"}");
 			
 			if (playerPrefab == null || !playerPrefab.IsValid())
 			{
@@ -113,6 +141,8 @@ namespace Reclaimer
 			
 			var player = playerPrefab.Clone(spawnPoint);
 			player.Name = $"{classType}_{channel.DisplayName}";
+			
+			Log.Info($"Player spawned: {player.Name} at {player.WorldPosition}");
 			
 			var clothing = new ClothingContainer();
 			clothing.Deserialize(channel.GetUserData("avatar"));
@@ -142,13 +172,28 @@ namespace Reclaimer
 		
 		GameObject GetPrefabForClass(TrinityClassType classType)
 		{
-			return classType switch
+			GameObject prefab = classType switch
 			{
 				TrinityClassType.Tank => TankPrefab,
 				TrinityClassType.Healer => HealerPrefab,
 				TrinityClassType.DPS => DPSPrefab,
 				_ => DefaultPlayerPrefab
 			};
+			
+			// Fallback to default if class prefab is missing
+			if (prefab == null || !prefab.IsValid())
+			{
+				Log.Warning($"Missing prefab for {classType}, falling back to DefaultPlayerPrefab");
+				prefab = DefaultPlayerPrefab;
+			}
+			
+			// Final fallback - this should never happen but prevents crashes
+			if (prefab == null || !prefab.IsValid())
+			{
+				Log.Error($"No valid prefab available for {classType} - critical error!");
+			}
+			
+			return prefab;
 		}
 		
 		bool CanSelectClass(TrinityClassType classType)

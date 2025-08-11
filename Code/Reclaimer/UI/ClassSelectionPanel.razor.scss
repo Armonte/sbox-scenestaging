@@ -2,16 +2,41 @@ ClassSelectionPanel {
 	position: absolute;
 	width: 100%;
 	height: 100%;
-	background: linear-gradient(135deg, rgba(10, 10, 30, 0.95), rgba(30, 10, 50, 0.95));
+	background: linear-gradient(135deg, #0a0f1c 0%, #1a1a2e 50%, #16213e 100%);
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-family: Poppins, system-ui, sans-serif;
+	pointer-events: all;
+	transition: all 0.5s ease-out;
+	color: #e8e8e8;
+	
+	&.transitioning-out {
+		opacity: 0;
+		transform: scale(0.9);
+		pointer-events: none;
+		
+		.class-grid .class-card {
+			transform: translateY(50px) scale(0.8);
+			opacity: 0;
+		}
+		
+		.header {
+			transform: translateY(-30px);
+			opacity: 0;
+		}
+		
+		.party-status {
+			transform: translateY(30px);
+			opacity: 0;
+		}
+	}
 	
 	.header {
 		text-align: center;
 		margin-bottom: 40px;
+		transition: all 0.5s ease-out;
 		
 		h1 {
 			font-size: 48px;
@@ -40,7 +65,8 @@ ClassSelectionPanel {
 			border-radius: 15px;
 			padding: 25px;
 			cursor: pointer;
-			transition: all 0.3s ease;
+			pointer-events: all;
+			transition: all 0.2s ease-out;
 			position: relative;
 			display: flex;
 			flex-direction: column;
@@ -61,12 +87,36 @@ ClassSelectionPanel {
 			}
 			
 			&:hover:not(.disabled) {
-				transform: translateY(-5px);
-				box-shadow: 0 10px 30px rgba(100, 100, 255, 0.3);
+				transform: translateY(-8px);
+				box-shadow: 0 15px 40px rgba(100, 100, 255, 0.4);
+				background: linear-gradient(135deg, rgba(60, 60, 80, 0.95), rgba(40, 40, 60, 0.95));
+				border-color: rgba(150, 150, 200, 0.6);
+				sound-in: ui.button.over;
 				
 				&:before {
-					opacity: 0.3;
+					opacity: 0.4;
 				}
+				
+				.class-icon {
+					transform: scale(1.1);
+					filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5));
+				}
+				
+				h3 {
+					color: #ffffff;
+					text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+				}
+				
+				.class-role {
+					background: rgba(255, 200, 0, 0.2);
+					color: #ffdd00;
+				}
+			}
+			
+			&:active:not(.disabled) {
+				transform: translateY(-2px);
+				box-shadow: 0 5px 15px rgba(100, 100, 255, 0.3);
+				sound-in: ui.button.press;
 			}
 			
 			&.disabled {
@@ -76,6 +126,24 @@ ClassSelectionPanel {
 				.class-status .full {
 					color: #ff4444;
 				}
+				
+				&:hover {
+					transform: none;
+					box-shadow: none;
+					background: linear-gradient(135deg, rgba(40, 40, 60, 0.9), rgba(20, 20, 40, 0.9));
+					border-color: rgba(100, 100, 150, 0.3);
+				}
+			}
+			
+			&:intro {
+				opacity: 0;
+				transform: scale(0.8) translateY(50px);
+			}
+			
+			&:outro {
+				opacity: 0;
+				transform: scale(0.9) translateY(-30px);
+				transition: all 0.3s ease;
 			}
 			
 			.class-icon {
@@ -83,6 +151,7 @@ ClassSelectionPanel {
 				text-align: center;
 				margin-bottom: 15px;
 				filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+				transition: all 0.2s ease-out;
 			}
 			
 			h3 {
@@ -90,6 +159,7 @@ ClassSelectionPanel {
 				color: #fff;
 				text-align: center;
 				margin-bottom: 10px;
+				transition: all 0.2s ease-out;
 			}
 			
 			.class-role {
@@ -102,23 +172,18 @@ ClassSelectionPanel {
 				padding: 5px 10px;
 				background: rgba(255, 200, 0, 0.1);
 				border-radius: 5px;
+				transition: all 0.2s ease-out;
 			}
 			
 			.class-description {
-				display: flex;
 				flex-direction: column;
 				gap: 8px;
 				margin: 15px 0;
-				color: rgba(255, 255, 255, 0.8);
-				font-size: 14px;
-				font-family: inherit;
 				
 				.feature {
-					color: rgba(255, 255, 255, 0.8) !important;
-					font-size: 14px !important;
-					font-family: inherit !important;
-					font-weight: normal !important;
-					line-height: 1.4;
+					color: rgba(255, 255, 255, 0.8);
+					font-size: 16px;
+					font-family: Poppins;
 				}
 			}
 			
@@ -143,6 +208,7 @@ ClassSelectionPanel {
 		border: 1px solid rgba(100, 100, 150, 0.3);
 		border-radius: 10px;
 		padding: 20px 40px;
+		transition: all 0.5s ease-out;
 		
 		h3 {
 			color: #fff;
