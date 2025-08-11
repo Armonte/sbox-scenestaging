@@ -1,0 +1,127 @@
+.simple-hud {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-family: 'Segoe UI', sans-serif;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .vitals {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+        margin-bottom: 10px;
+
+        .health, .mana, .resource {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+            min-width: 150px;
+
+            .icon {
+                font-family: 'Material Icons';
+                font-size: 20px;
+                margin-right: 8px;
+            }
+
+            .value {
+                font-weight: bold;
+                font-size: 14px;
+            }
+        }
+
+        .health {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .mana {
+            border-left: 4px solid #3498db;
+        }
+        
+        .resource {
+            border-left: 4px solid #f39c12;
+        }
+    }
+
+    .abilities {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 10px;
+
+        .ability {
+            position: relative;
+            width: 60px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #555;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            .key {
+                font-weight: bold;
+                font-size: 12px;
+                color: #ccc;
+            }
+
+            .cooldown {
+                position: absolute;
+                top: 2px;
+                right: 2px;
+                font-size: 10px;
+                color: #ff6b6b;
+                font-weight: bold;
+            }
+
+            &.ready {
+                border-color: #2ecc71;
+                
+                .key {
+                    color: #2ecc71;
+                }
+            }
+
+            &.on-cooldown {
+                border-color: #e74c3c;
+                background: rgba(231, 76, 60, 0.2);
+                
+                .key {
+                    color: #e74c3c;
+                }
+            }
+        }
+    }
+
+    .class-status {
+        background: rgba(0, 0, 0, 0.8);
+        color: white;
+        padding: 10px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 13px;
+        border-left: 4px solid #95a5a6;
+
+        &.tank {
+            border-left-color: #3498db;
+            background: rgba(52, 152, 219, 0.2);
+        }
+
+        &.healer {
+            border-left-color: #2ecc71;
+            background: rgba(46, 204, 113, 0.2);
+        }
+
+        &.dps {
+            border-left-color: #e74c3c;
+            background: rgba(231, 76, 60, 0.2);
+        }
+    }
+}

@@ -107,7 +107,7 @@
           "OnComponentStart": null,
           "OnComponentUpdate": null,
           "Opacity": 1,
-          "Scale": 1,
+          "Scale": 2,
           "ScaleStrategy": "FollowDesktopScaling",
           "TargetCamera": null,
           "ZIndex": 100

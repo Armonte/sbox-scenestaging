@@ -1,0 +1,690 @@
+Localization
+
+When displaying text such as Hello World, you should instead use a localization token like #menu.helloworld. This will automatically replace the text with the corresponding language set by the user when set on a Label, allowing you to easily support multiple languages.
+Tokens
+
+In UI, any displayed string that begins with a # will be recognized as a token, which means it will look for it's real value in the localization system.
+Example
+
+Filename: Localization/en/sandbox.json
+
+{
+  "menu.helloworld": "Hello World",
+  "spawnmenu.props": "Models",
+  "spawnmenu.tools": "Tools"
+  "spawnmenu.cloud": "sbox.game",
+}
+
+Then it's as easy as doing the following:
+
+<label>#spawnmenu.props</label>
+
+Languages
+English Name 	API Language Code
+Arabic 	ar
+Bulgarian 	bg
+Simplified Chinese 	zh-cn
+Traditional Chinese 	zh-tw
+Czech 	cs
+Danish 	da
+Dutch 	nl
+English 	en
+Finnish 	fi
+French 	fr
+German 	de
+Greek 	el
+Hungarian 	hu
+Italian 	it
+Japanese 	ja
+Korean 	ko
+Norwegian 	no
+Pirate 	en-pt
+Polish 	pl
+Portuguese 	pt
+Portuguese-Brazil 	pt-br
+Romanian 	ro
+Russian 	ru
+Spanish-Spain 	es
+Spanish-Latin America 	es-419
+Swedish 	sv
+Thai 	th
+Turkish 	tr
+Ukrainian 	uk
+Vietnamese 	vn
+
+HudPainter
+
+Each camera has a HudPainter that can be used to draw onto the HUD. You do this every frame, in any Update function.
+
+This is more efficient than using actual UI panels because there's no layout, stylesheets or interactivity.. you're doing all that stuff yourself.
+
+If your UI is relatively simple, you can do it this way to keep things easy.
+
+	protected override void OnUpdate()
+	{
+		if ( Scene.Camera is null )
+			return;
+
+		var hud = Scene.Camera.Hud;
+
+		hud.DrawRect( new Rect( 300, 300, 10, 10 ), Color.White );
+
+		hud.DrawLine( new Vector2( 100, 100 ), new Vector2( 200, 200 ), 10, Color.White );
+
+		hud.DrawText( new TextRendering.Scope( "Hello!", Color.Red, 32 ), Screen.Width * 0.5f );
+	}
+
+
+
+
+
+
+Created 7 Nov 2024
+Updated 28 Jun 2025
+
+Razor Components
+
+Razor Component allow you to define some content to show inside another razor file. This makes it easy to create Panels that are more agile and reusable.
+Creating a Razor Component
+
+Here's an example called InfoCard.razor:
+
+<root>
+    <div class="header">@Header</div>
+    <div class="body">@Body</div>
+    <div class="footer">@Footer</div>
+</root>
+
+@code
+{
+    public RenderFragment Header { get; set; }
+    public RenderFragment Body { get; set; }
+    public RenderFragment Footer { get; set; }
+}
+
+Using a Razor Component
+
+We can now very quickly and easily create Info Cards, and even add events/functions that interact with the parent Panel:
+
+<root>
+	<InfoCard>
+        <Header>My Card</Header>
+        <Body>
+            <div class="title">This is my card</div>
+        </Body>
+        <Footer>
+            <div class="button" onclick="@CloseCard">Close Card</div>
+        </Footer>
+    </InfoCard>
+</root>
+
+@code 
+{
+    void CloseCard()
+    {
+        Delete();
+    }
+}
+
+Elements inside Panels
+
+All Panels have a render fragment called ChildContent, so you can add elements inside of any Panel without adding your own fragments:
+
+<InfoCard>
+  <ChildContent>
+    <label>Something inside of InfoCard</label>
+  </ChildContent>
+</InfoCard>
+
+Razor Components With Arguments
+
+RenderFragment<T> is used to define a fragment that takes an argument. Here's PlayerList.razor:
+
+@using Sandbox;
+
+<root>
+    @foreach ( var player in PlayerList )
+    {
+        <div class="row">
+            @PlayerRow( player )
+        </div>
+    }
+</root>
+
+@code
+{
+    public List<Player> PlayerList { get; set; }
+    public RenderFragment<Player> PlayerRow { get; set; }
+}
+
+As you can see, we're now defining PlayerRow which takes an argument. To call it we just call it like a function, with the Player argument.
+
+Now to use it we do this:
+
+@using Sandbox;
+
+<root>
+    <PlayerList PlayerList=@MyPlayerList>
+        <PlayerRow Context>
+            @if (context is not Player player)
+                return;
+
+            <div class="row">@player.Name</div>
+            <div class="row">@player.Health</div>
+        </PlayerRow>
+    </PlayerList>
+</root>
+
+@code 
+{
+    List<Player> MyPlayerList;
+}
+
+In the PlayerRow, we add the special attribute Context, which tells our code generator that this is going to need a special object context.
+
+Then in the fragment, we can convert this object into our target type. Then you're free to use it as you wish.
+Generics
+
+You can make a generic Panel class by using @typeparam to define the name of the parameter
+
+@typeparam T
+
+<root>
+    This is my class for @Value
+</root>
+
+@code
+{
+    public T Value { get; set; }
+}
+
+You will then be able to use this like a regular generics class in C#, like PanelName<string> ect.
+
+In Razor, you will need to add a T attribute to define the type like so:
+
+<root>
+	<MyPanel T="string"></MyPanel>
+</root>
+
+
+
+
+
+
+Created 24 Sep 2024
+Updated 16 Dec 2024
+
+Razor Panels
+
+UI can also be created using Razor, which allows you to use web-like HTML/CSS to create and style each Panel while also being able to leverage C#.
+
+The panels are created and rendered exactly the same way. They don't use a HTML renderer. This syntax is a convenience.
+Creating a new PanelComponent
+
+Every single UI consists of a PanelComponent at the root, with normal Panels being the children/content within. The PanelComponent can be added to any GameObject that also has either a ScreenPanel or WorldPanel component, and it will be drawn to whichever it has.
+
+When you create a new Component, select "New Razor Panel Component" to get the following:
+
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+
+<root>
+	<div class="title">@MyStringValue</div>
+</root>
+
+@code
+{
+
+	[Property, TextArea] public string MyStringValue { get; set; } = "Hello World!";
+
+	/// <summary>
+	/// the hash determines if the system should be rebuilt. If it changes, it will be rebuilt
+	/// </summary>
+	protected override int BuildHash() => System.HashCode.Combine( MyStringValue );
+}
+
+HTML/Razor
+
+Anything within the <root> tags is treated as HTML, allowing you to inject C# as-needed, like so:
+
+<root>
+  @foreach(var player in Player.All)
+  {
+    <div class="player">
+      <label>@player.Name</label>
+      @if(player.IsDead)
+      {
+        <img src="ui/skull.png" />
+      }
+    </div>
+  }
+</root>
+
+If no <root> element is present, then any and all elements will be a child of your Panel's root automatically.
+
+You can also return early in Razor if you don't want it to render anything beyond the specified line.
+BuildHash
+
+A Panel's contents will only be rebuilt if the value returned from BuildHash() has changed from the previous value, so make sure to include certain values here to ensure the Panel updates when necessary.
+
+A Panel's contents will also rebuild if if has pointer-events and the cursor enters/exits/clicks the Panel.
+
+You can also force a rebuild by calling StateHasChanged(). This will queue the rebuild for the next frame.
+Creating a new Panel
+
+Since a PanelComponent is the root, any child elements are instead Panels. These are created in the exact same way PanelComponents are, but instead inheriting the Panel class (which .razor files do by default):
+
+@using Sandbox;
+@using Sandbox.UI;
+
+<root>
+  <div class="health">HP: @Health</div>
+  <div class="armor">Armor: @Armor</div>
+</root>
+
+@code
+{
+  public int Health { get; set; } = 100;
+  public int Armor { get; set; } = 100;
+  
+  protected override int BuildHash() => System.HashCode.Combine( Health, Armor );
+}
+
+How to Use
+
+Back in your PanelComponent (or any other Panel), you can simply use the panel like any other element:
+
+<MyChildPanel />
+
+And can even pass variables to the Panel like so:
+
+<MyChildPanel Health=@(30) Armor=@(75) />
+
+How to store a Panel Reference
+
+If you wish to store a reference to MyChildPanel so you can modify its properties in code, you can do this:
+
+<root>
+  <MyChildPanel @ref="PanelReference" />
+</root>
+
+@code
+{
+  MyChildPanel PanelReference { get; set; }
+  
+  protected override void OnStart()
+  {
+    PanelReference.Health = Player.Local.Health;
+    PanelReference.Armor = Player.Local.Armor;
+  }
+}
+
+Two Way Binds
+
+Sometimes you want to bind a variable to a control, and if it changes, sync the value back. That's what this is.
+
+You create a two way bind using :bind after the attribute name:
+
+<SliderEntry min="0" max="100" step="1" Value:bind=@IntValue></SliderEntry>
+
+@code
+{
+	public int IntValue{ get; set; } = 32;
+}
+
+The example above will update the Slider when IntValue changes, and IntValue when the Slider changes
+Differences between Panel and PanelComponent
+
+Since a Panel is not a Component, you cannot override OnStart, OnUpdate, ect.
+Instead Panel has OnAfterTreeRender(bool firstTime) and Tick().
+
+Since PanelComponent is not a Panel, you have to access it's Panel via the PanelComponent.Panel accessor.
+This means where you can do Style.Left = Length.Auto on a Panel, you have to do
+Panel.Style.Left = Length.Auto on a PanelComponent.
+
+This also means you cannot do <MyPanelComponent /> within another Panel/PanelComponent, they must be added to a GameObject with a ScreenPanel or WorldPanel.
+
+
+
+
+
+UI
+
+Our UI system is structured around Panels. A Panel is a c# class that can have parent and child panels.
+
+The panels use a stylesheet and flex system for layout and rendering.
+
+They can be created directly in code or via Razor files with HTML/CSS syntax.
+Making a C# Panel
+
+Here's a basic example of a Panel that simply displays Time.Now:
+
+public class MyPanel : Panel
+{
+  public Label MyLabel { get; set; }
+  
+  public MyPanel()
+  {
+    MyLabel = new Label();
+    MyLabel.Parent = this;
+  }
+  
+  public override void Tick()
+  {
+    MyLabel.Text = $"{Time.Now}";
+  }
+}
+
+Using a Panel
+
+Once you've create a Panel, it can be used in two different ways. The first is done identically to how we added a Label in the example above:
+
+var myPanel = new MyPanel();
+myPanel.Parent = this;
+
+The other is by using the following syntax within a @Razor Panels file:
+
+<MyPanel />
+
+Creating a C# Root Panel
+
+To draw your UI to either the Screen or to a World Panel, you'll need to create a PanelComponent. A PanelComponent acts as the root of all UI, and is added to any GameObject with either a ScreenPanel or WorldPanel component. Here's an example of how you can create a basic one including the above panel:
+
+public sealed class MyRootPanel : PanelComponent
+{
+	MyPanel myPanel;
+ 
+	protected override void OnTreeFirstBuilt()
+	{
+		base.OnTreeFirstBuilt();
+
+		myPanel = new MyPanel();
+		myPanel.Parent = Panel;
+	}
+}
+
+Scaling
+
+By default, ScreenPanels will rescale all UI based on a 1080p target height automatically. If you wish to disable this, or change the scaling to target the Desktop Resolution, you can change the following:
+
+
+
+
+
+
+Created 24 Sep 2024
+Updated 28 Jun 2025
+
+Styling Panels
+Using Stylesheets
+
+It is common to have a file system like this:
+
+    Health.razor
+    Health.razor.scss
+
+If you do this, the scss file is automatically included by your Health.razor panel.
+
+If you want to specify a different location for the loaded Stylesheet, you can add this to your Panel class:
+
+[StyleSheet("main.scss")]
+
+You can also import a stylesheet from within another stylesheet like so:
+
+@import "buttons.scss";
+
+Styling Directly
+
+There are a few ways to style your Panels without a stylesheet. It's really recommended that you use a stylesheet to keep things organized, but there are also valid reasons to use the following methods.
+Styling the Element
+
+You can directly style any element just like you can in HTML, but can inject C# when necessary:
+
+<label style="color: red">DANGER!</label>
+<div class="progress-bar">
+  <div class="fill" style="width: @(Progress * 100f)%"></div>
+</div>
+
+Style Block
+
+Before or after your <root> element, you can add a <style> block that is read just like a Stylesheet:
+
+<style>
+  MyPanel {
+    width: 100%;
+    height: 100%;
+  }
+  .hp { color: red; }
+  .armor { color: blue; }
+</style>
+
+Styling in Code
+
+You can a Panel's Style directly and modify the values however you'd like via Tick() or OnUpdate():
+
+myPanel.Style.Width = Length.Percent(Progress * 100f);
+
+
+
+
+
+
+Created 24 Sep 2024
+Updated 25 Sep 2024
+
+Style Properties
+
+We try to keep as close to standard web styles as possible - but not every property is implemented. We'll use this page to highlight any differences.
+
+Anything marked in bold* may behave differently to how you'd expect on web.
+Common Types
+Name 	Description 	Examples
+Float 	A standard float 	flex-grow: 2.5;
+String 	A string with or without quotes 	font-family: Poppins;,content: "Back to Menu";
+int 	A standard int 	font-weight: 600;
+Color 	Can have alpha 	color: #fff;,color: #ffffffaa;,color: rgba(red, 0.5);
+Length 	A dimension, pixel or relative. 	left: 10px;,left: 10%;,left: 10em;,left: 10vw;,mask-angle: 10deg;
+Custom Style Properties
+Name 	Parameters 	Examples / Notes
+aspect-ratio 	Float, Float (Optional) 	aspect-ratio: 1;,aspect-ratio: 16/9;
+background-image-tint 	Color 	Multiplies the background-image by this Color. Not a replacement for filter or backdrop-filter.
+border-image-tint 	Color 	Multiplies the border-image by this Color.
+mask-scope 	default / filter 	default will apply the mask normally, filter will use the mask to blend between unfiltered and filtered.
+sound-in 	String 	The name of the sound to play when this style is applied to an element. This is useful to put on a :hover or :active style to play a sound on hover/click
+sound-out 	String 	The name of a sound to play when this style is removed from an element.
+text-stroke 	Length, Color 	This will put an outline
+text-stroke-color 	Color 	
+text-stroke-width 	Length 	
+Supported Style Properties
+Name 	Parameters 	Examples / Notes
+align-content 	autoflex-endflex-startcenterstretchspace-betweenspace-aroundbaseline 	
+align-items 	Same as align-content 	
+align-self 	Same as align-content 	
+animation 	Fills in the properties below 	
+animation-delay 	Float 	
+animation-direction 	normal (default) reverse alternate alternate-reverse 	
+animation-duration 	Float 	
+animation-fill-mode 	none forwardsbackwardsboth 	
+animation-iteration-count 	int / infinite 	
+animation-name 	String 	
+animation-play-state 	runningpaused 	
+animation-timing-function 	linear (default) ease ease-in ease-out ease-in-out 	
+backdrop-filter 	blur(Length) <br>saturate(Length) <br>contrast(Length) <br>brightness(Length) <br>grayscale(Length) <br>sepia(Length) <br>hue-rotate(Length) <br>invert(Length) <br>border-wrap(Length, Color) 	backdrop-filter: blur(10px) saturate(80%);
+backdrop-filter-blur 	Length 	
+backdrop-filter-brightness 	Length 	
+backdrop-filter-contrast 	Length 	
+backdrop-filter-hue-rotate 	Length 	
+backdrop-filter-invert 	Length 	
+backdrop-filter-saturate 	Length 	
+backdrop-filter-sepia 	Length 	
+background 	Fills in the properties below 	
+background-angle 	Length 	
+background-blend-mode 	normal lighten multiply 	
+background-color 	Color 	
+background-image 	url(string) <br>linear-gradient(Color, Color) <br>radial-gradient(Color, Color) <br>conic-gradient(Color, Color) 	
+background-position 	Length, Length (optional) 	background-position: 10px``background-position: 10px 15px
+background-position-x 	Length 	
+background-position-y 	Length 	
+background-repeat 	no-repeat repeat-x repeat-y repeat 	
+background-size 	Length, Length (optional) 	background-size: 10px background-size: 10px 15px
+background-size-x 	Length 	
+background-size-y 	Length 	
+border 	border-width, border-style, border-color 	border: 10px solid black;
+border-bottom 	Same as border 	
+border-bottom-color 	Color 	
+border-bottom-left-radius 	Length 	
+border-bottom-right-radius 	Length 	
+border-bottom-width 	Length 	
+border-color 	Color 	
+border-image 	Same as background-image 	
+border-image-tint 	Color 	
+border-image-width-bottom 	Length 	
+border-image-width-left 	Length 	
+border-image-width-right 	Length 	
+border-image-width-top 	Length 	
+border-left 	Same as border 	
+border-left-color 	Color 	
+border-left-width 	Length 	
+border-radius 	Length 	border-radius: 8px;<br>border-radius: 8px 0px 8px 8px;
+border-right 	Same as border 	
+border-right-color 	Color 	
+border-right-width 	Length 	
+border-top 	Same as border 	
+border-top-color 	Color 	
+border-top-left-radius 	Length 	
+border-top-right-radius 	Length 	
+border-top-width 	Length 	
+border-width 	Length 	
+bottom 	Length 	
+box-shadow 	Length,<br>Length (optional),<br>Length (blur, optional),<br>Length (spread, optional),<br>Color 	box-shadow: 2px 2px 4px black;
+color 	Color /<br>linear-gradient(Color, Color) /<br>radial-gradient(Color, Color) /<br>conic-gradient(Color, Color) 	
+column-gap 	Length 	
+content 	string 	Sets the text of a Label.<br>eg. content: "LoadingÅc";
+cursor 	none / pointer / progress / wait / crosshair / text / move / not-allowed / any custom cursors 	
+display* 	flex (default) / none 	Everything is flex by default
+filter 	Same as backdrop-filter 	
+filter-blur 	Length 	
+filter-border-color 	Color 	
+filter-border-width 	Length 	
+filter-brightness 	Length 	
+filter-contrast 	Length 	
+filter-drop-shadow 	Same as box-shadow 	
+filter-hue-rotate 	Length 	
+filter-invert 	Length 	
+filter-saturate 	Length 	
+filter-sepia 	Length 	
+filter-tint 	Length 	
+flex-basis 	Length 	
+flex-direction 	row (default) / row-reverse / column / column-reverse 	
+flex-grow 	Float 	
+flex-shrink 	Float 	
+flex-wrap 	nowrap (Default) / wrap / wrap-reverse 	
+font-color 	Color 	
+font-family* 	String 	Specify a single font, based on the name of the font itself, not the filename.<br>eg. font-family: Comic Sans MS;
+font-size 	Length 	
+font-smooth 	auto / always / never 	never is good for pixel fonts
+font-style 	normal (default) / italic 	
+font-weight 	normal (default) / bold / light / bolder / lighter / black / int 	font-weight: bold;,font-weight: 300;
+gap 	Length, Length (optional) 	Shorthand for row-gap and column-gap, specified the size of gutters.
+height 	Length 	
+image-rendering 	auto (default) / anisotropic / bilinear / trilinear / point / pixelated / nearest-neighbour 	
+justify-content 	Same as align-content 	
+left 	Length 	
+letter-spacing 	Length / normal 	
+line-height 	Length 	
+margin 	Fills in the properties below 	
+margin-bottom 	Length 	
+margin-left 	Length 	
+margin-right 	Length 	
+margin-top 	Length 	
+mask 	Shorthand for other mask properties 	
+mask-angle 	Length 	
+mask-image 	Same as background-image 	
+mask-mode 	luminance / alpha 	
+mask-position 	Length, Length (optional) 	
+mask-position-x 	Length 	
+mask-position-y 	Length 	
+mask-repeat 	same as background-repeat 	
+mask-size 	Length, Length (optional) 	
+mask-size-x 	Length 	
+mask-size-y 	Length 	
+max-height 	Length 	
+max-width 	Length 	
+min-height 	Length 	
+min-width 	Length 	
+mix-blend-mode 	normal / lighten / multiply 	
+opacity 	Float 	
+order 	int 	
+overflow 	visible (default) / hidden / scroll 	
+overflow-x 	Same as overflow 	
+overflow-y 	Same as overflow 	
+padding 	Fills in the properties below 	
+padding-bottom 	Length 	
+padding-left 	Length 	
+padding-right 	Length 	
+padding-top 	Length 	
+perspective-origin 	Length, Length (optional) 	
+perspective-origin-x 	Length 	
+perspective-origin-y 	Length 	
+pointer-events 	none (default) / all / auto 	
+position* 	static (default) / relative / absolute 	See how it works: https://yogalayout.com/docs/absolute-relative-layout/
+right 	Length 	
+row-gap 	Length 	
+text-align 	left (default) / center / right 	
+text-background-angle 	Length 	
+text-decoration 	Color / Length / LineStyle, Line 	Properties can be in any order and you can have multiple lines.
+text-decoration-color 	Color 	
+text-decoration-line 	underline / line-through / overline 	Multiple properties can be set. eg. text-decoration-line: overline underline;
+text-decoration-line-through-offset 	Length 	
+text-decoration-overline-offset 	Length 	
+text-decoration-skip-ink 	all / none 	Decides whether the line decoration should draw above glyphs or not
+text-decoration-thickness 	Length 	
+text-decoration-underline-offset 	Length 	
+text-overflow 	clip / ellipsis 	
+text-shadow 	Same as box-shadow 	
+text-transform 	none (default) / capitalize / lowercase / uppercase 	
+top 	Length 	
+transform 	Fills in the properties below 	
+transform-origin 	Length, Length, Length (optional) 	
+transform-origin-x 	Length 	
+transform-origin-y 	Length 	
+transition 	Fills in the properties below 	transition: all 0.1s ease;,transition: opacity 0.1s transform 0.2s ease-out;
+transition-delay 	Float 	
+transition-duration 	Float 	
+transition-property 	String 	
+transition-timing-function 	linear (default) / ease / ease-in-out / ease-out / ease-in 	
+white-space 	normal / nowrap / pre 	Use pre to format tabs and newlines.
+width 	Length 	
+word-break 	normal / break-all 	
+word-spacing 	Length 	
+z-index 	int 	
+Custom Pseudo-Classes
+
+These are some s&box-specific pseudo-classes which are useful for applying transitions when an element is created or deleted.
+
+    :intro is removed when the element is created, things will transition away from this
+    :outro is added when Panel.Delete() is called. The Panel waits for all transitions to finish before actually deleting itself.
+
+MyPanel {
+	transition: all 2s ease-out;
+	transform: scale( 1 );
+
+	// When the element is created make it expand from nothing.
+	&:intro {
+		transform: scale( 0 );
+	}
+
+	// When the element is deleted make it double in size before being deleted.
+	&:outro {
+		transform: scale( 2 );
+	}
+}
+
+
+
+
+
+
+Created 24 Sep 2024
+Updated 17 Jan 2025

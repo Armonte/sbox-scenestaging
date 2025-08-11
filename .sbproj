@@ -26,8 +26,8 @@
     "CsProjName": "",
     "HttpAllowList": null,
     "TickRate": 50,
-    "StartupScene": "scenes/tests/menu.scene",
-    "MapStartupScene": "scenes/tests/maploader.scene",
+    "StartupScene": "scenes/tests/reclaimer/reclaimer_boss_encounter.scene",
+    "MapStartupScene": "scenes/tests/reclaimer/reclaimer_boss_encounter.scene",
     "LaunchMode": "Normal",
     "ControlModes": {}
   }

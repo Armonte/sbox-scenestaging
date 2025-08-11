@@ -1,0 +1,256 @@
+.game-hud {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    font-family: 'Segoe UI', sans-serif;
+    
+    .health-section {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+            border-radius: 10px;
+            overflow: hidden;
+            
+            .health-fill {
+                height: 100%;
+                background: linear-gradient(to right, #e74c3c, #27ae60);
+                transition: width 0.3s ease;
+            }
+        }
+        
+        .health-text {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+    }
+    
+    .resource-section {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        
+        .mana-bar, .milk-bar {
+            width: 200px;
+            height: 15px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            
+            .mana-fill {
+                height: 100%;
+                background: linear-gradient(to right, #3498db, #9b59b6);
+                transition: width 0.3s ease;
+            }
+            
+            .milk-fill {
+                height: 100%;
+                background: linear-gradient(to right, #f39c12, #f1c40f);
+                transition: width 0.3s ease;
+            }
+        }
+        
+        .trunk-progress {
+            .trunk-level {
+                color: #e67e22;
+                font-weight: bold;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            
+            .trunk-length {
+                color: #f39c12;
+                font-size: 14px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            
+            .trunk-xp-bar {
+                width: 200px;
+                height: 15px;
+                background-color: rgba(0, 0, 0, 0.5);
+                border: 2px solid #333;
+                border-radius: 8px;
+                overflow: hidden;
+                margin-top: 5px;
+                
+                .trunk-xp-fill {
+                    height: 100%;
+                    background: linear-gradient(to right, #e67e22, #d35400);
+                    transition: width 0.3s ease;
+                }
+            }
+        }
+        
+        .resource-text {
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .spoilage-warning {
+            color: #e74c3c;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 2px;
+            animation: pulse 1s infinite;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+    }
+    
+    .leo-status {
+        position: absolute;
+        top: 140px;
+        left: 20px;
+        
+        .shell-status {
+            background-color: rgba(52, 152, 219, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .parry-window {
+            background-color: rgba(241, 196, 15, 0.8);
+            color: black;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            animation: pulse 0.5s infinite;
+        }
+        
+        .sword-status {
+            background-color: rgba(231, 76, 60, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .lilfrank-status {
+            background-color: rgba(46, 204, 113, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .lactose-warning {
+            background-color: rgba(155, 89, 182, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+    }
+    
+    .abilities-section {
+        position: absolute;
+        bottom: 60px;
+        left: 50%;
+        transform: translateX(-50%);
+        
+        .ability-cooldowns {
+            display: flex;
+            gap: 10px;
+            
+            .ability-1, .ability-2, .ultimate {
+                position: relative;
+                width: 50px;
+                height: 50px;
+                background-color: rgba(0, 0, 0, 0.7);
+                border: 2px solid #555;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                
+                .ability-icon {
+                    color: white;
+                    font-weight: bold;
+                    font-size: 18px;
+                    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+                }
+                
+                .cooldown-text {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    color: #e74c3c;
+                    font-weight: bold;
+                    font-size: 14px;
+                    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+                    background-color: rgba(0, 0, 0, 0.8);
+                    padding: 2px 4px;
+                    border-radius: 4px;
+                }
+            }
+            
+            .ultimate {
+                border-color: #f39c12;
+                background-color: rgba(243, 156, 18, 0.2);
+            }
+        }
+    }
+    
+    .party-section {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        
+        .party-member {
+            margin-bottom: 10px;
+            
+            .party-name {
+                color: white;
+                font-weight: bold;
+                font-size: 12px;
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            }
+            
+            .party-health-bar {
+                width: 120px;
+                height: 8px;
+                background-color: rgba(0, 0, 0, 0.5);
+                border: 1px solid #333;
+                border-radius: 4px;
+                overflow: hidden;
+                margin-top: 2px;
+                
+                .party-health-fill {
+                    height: 100%;
+                    background: linear-gradient(to right, #e74c3c, #27ae60);
+                    transition: width 0.3s ease;
+                }
+            }
+        }
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}

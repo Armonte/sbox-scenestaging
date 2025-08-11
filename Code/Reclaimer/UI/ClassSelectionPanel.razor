@@ -1,0 +1,159 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using Reclaimer;
+@inherits PanelComponent
+
+<root class="class-selection-panel">
+	<div class="header">
+		<h1>Choose Your Trinity Class</h1>
+		<p>Select your role in the raid party</p>
+	</div>
+	
+	<div class="class-grid">
+		<div class="class-card @(CanSelectClass(TrinityClassType.Tank) ? "" : "disabled")" 
+			 @onclick="@(() => SelectClass(TrinityClassType.Tank))">
+			<div class="class-icon">🐢</div>
+			<h3>Leo the Phranklyn</h3>
+			<div class="class-role">TANK</div>
+			<ul class="class-description" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0; list-style: none; padding: 0;">
+				@foreach(var item in GetTankFeatures())
+				{
+					<li class="feature" style="color: rgba(255, 255, 255, 0.8); font-size: 14px; font-family: Poppins; line-height: 1.4; position: relative; padding-left: 20px;">
+						<span style="position: absolute; left: 0; color: #ffcc00;">•</span>
+						@(item.TrimStart('•', ' '))
+					</li>
+				}
+			</ul>
+			<div class="class-status">
+				@if (SpawnManager?.TankCount >= 1)
+				{
+					<span class="full">Role Filled</span>
+				}
+				else
+				{
+					<span class="available">Available</span>
+				}
+			</div>
+		</div>
+		
+		<!-- COMMENTED OUT TO DEBUG LEO CARD ONLY -->
+		<!--
+		<div class="class-card @(CanSelectClass(TrinityClassType.Healer) ? "" : "disabled")"
+			 @onclick="@(() => SelectClass(TrinityClassType.Healer))">
+			<div class="class-icon">🥛</div>
+			<h3>Holy Milker Abby</h3>
+			<div class="class-role">HEALER</div>
+			<div class="class-description">
+				<div>Dual gun system</div>
+				<div>Milk resource management</div>
+				<div>Divine Spill ultimate</div>
+				<div>Portal teleportation</div>
+			</div>
+			<div class="class-status">
+				@if (SpawnManager?.HealerCount >= 2)
+				{
+					<span class="full">Role Filled</span>
+				}
+				else
+				{
+					<span class="available">@(2 - (SpawnManager?.HealerCount ?? 0)) Slots</span>
+				}
+			</div>
+		</div>
+		
+		<div class="class-card @(CanSelectClass(TrinityClassType.DPS) ? "" : "disabled")"
+			 @onclick="@(() => SelectClass(TrinityClassType.DPS))">
+			<div class="class-icon">🐘</div>
+			<h3>Mighty Trunk Warrior</h3>
+			<div class="class-role">DPS</div>
+			<div class="class-description">
+				<div>12-level trunk progression</div>
+				<div>Combo system</div>
+				<div>Reality-bending ultimates</div>
+				<div>Trunk pun obsession</div>
+			</div>
+			<div class="class-status">
+				@if (SpawnManager?.DPSCount >= 2)
+				{
+					<span class="full">Role Filled</span>
+				}
+				else
+				{
+					<span class="available">@(2 - (SpawnManager?.DPSCount ?? 0)) Slots</span>
+				}
+			</div>
+		</div>
+		-->
+	</div>
+	
+	<div class="party-status">
+		<h3>Current Party Composition</h3>
+		<div class="party-members">
+			<div class="role-count">
+				<span class="role-icon">🐢</span>
+				<span class="count">@(SpawnManager?.TankCount ?? 0)/1</span>
+			</div>
+			<div class="role-count">
+				<span class="role-icon">🥛</span>
+				<span class="count">@(SpawnManager?.HealerCount ?? 0)/2</span>
+			</div>
+			<div class="role-count">
+				<span class="role-icon">🐘</span>
+				<span class="count">@(SpawnManager?.DPSCount ?? 0)/2</span>
+			</div>
+		</div>
+		@if (SpawnManager?.IsPartyComplete() ?? false)
+		{
+			<div class="party-ready">Party Ready!</div>
+		}
+	</div>
+</root>
+
+@code {
+	TrinitySpawnManager SpawnManager => Scene?.GetAllComponents<TrinitySpawnManager>().FirstOrDefault();
+	ClassSelectionUI Selector => GameObject?.Components.Get<ClassSelectionUI>();
+	
+	string[] GetTankFeatures()
+	{
+		return new string[]
+		{
+			"• Shell parry system",
+			"• High survivability", 
+			"• Summons Lil Frank",
+			"• Lactose intolerant"
+		};
+	}
+	
+	bool CanSelectClass(TrinityClassType classType)
+	{
+		if (SpawnManager == null) return false;
+		
+		return classType switch
+		{
+			TrinityClassType.Tank => SpawnManager.TankCount < 1,
+			TrinityClassType.Healer => SpawnManager.HealerCount < 2,
+			TrinityClassType.DPS => SpawnManager.DPSCount < 2,
+			_ => false
+		};
+	}
+	
+	void SelectClass(TrinityClassType classType)
+	{
+		if (!CanSelectClass(classType))
+		{
+			Log.Warning($"Cannot select {classType} - role is full");
+			return;
+		}
+		
+		Selector?.RequestClassSelection(classType);
+	}
+	
+	protected override int BuildHash()
+	{
+		return HashCode.Combine(
+			SpawnManager?.TankCount,
+			SpawnManager?.HealerCount,
+			SpawnManager?.DPSCount
+		);
+	}
+}

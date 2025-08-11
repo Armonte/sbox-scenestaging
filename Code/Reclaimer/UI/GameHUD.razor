@@ -1,0 +1,233 @@
+@using Sandbox.UI
+@using Reclaimer
+@inherits PanelComponent
+
+<root class="game-hud">
+	<!-- Simple test to confirm HUD is visible -->
+	<div style="position: absolute; top: 50px; left: 50px; color: white; background: red; padding: 10px; z-index: 9999;">
+		<h1>TEST HUD IS WORKING!</h1>
+		<p>Player: @(Player?.ClassType.ToString() ?? "None")</p>
+		<p>Health: @GetHealthText()</p>
+	</div>
+	
+	<!-- Health Bar -->
+	<div class="health-section">
+		<div class="health-bar">
+			<div class="health-fill" style="width: @GetHealthPercentage()%"></div>
+		</div>
+		<div class="health-text">@GetHealthText()</div>
+	</div>
+	
+	<!-- Resource Bar -->
+	<div class="resource-section">
+		@if (Player is AbbyHealer healer)
+		{
+			<div class="milk-bar">
+				<div class="milk-fill" style="width: @GetMilkPercentage(healer)%"></div>
+			</div>
+			<div class="resource-text">Milk: @healer.CurrentMilk.ToString("F0") / @healer.MaxMilk.ToString("F0")</div>
+			@if (healer.MilkSpoilageTimer < 30f && healer.CurrentMilk > 0)
+			{
+				<div class="spoilage-warning">Spoils in: @healer.MilkSpoilageTimer.ToString("F1")s</div>
+			}
+		}
+		else if (Player is TrunkWarrior trunk)
+		{
+			<div class="trunk-progress">
+				<div class="trunk-level">Trunk Level: @trunk.TrunkLevel</div>
+				<div class="trunk-length">Length: @trunk.TrunkLength.ToString("F0")cm</div>
+				<div class="trunk-xp-bar">
+					<div class="trunk-xp-fill" style="width: @GetTrunkXPPercentage(trunk)%"></div>
+				</div>
+			</div>
+		}
+		else
+		{
+			<div class="mana-bar">
+				<div class="mana-fill" style="width: @GetManaPercentage()%"></div>
+			</div>
+			<div class="resource-text">Mana: @Player?.CurrentMana.ToString("F0") / @Player?.MaxMana.ToString("F0")</div>
+		}
+	</div>
+	
+	<!-- Leo Specific UI -->
+	@if (Player is LeoTank leo)
+	{
+		<div class="leo-status">
+			@if (leo.InShell)
+			{
+				<div class="shell-status">IN SHELL</div>
+				@if (leo.GetParryWindowRemaining() > 0)
+				{
+					<div class="parry-window">PARRY WINDOW: @leo.GetParryWindowRemaining().ToString("F1")s</div>
+				}
+			}
+			@if (!leo.HasSword)
+			{
+				<div class="sword-status">SWORD DROPPED</div>
+			}
+			@if (leo.LilFrankActive)
+			{
+				<div class="lilfrank-status">LIL FRANK ACTIVE</div>
+			}
+			@if (leo.LactoseIntolerant)
+			{
+				<div class="lactose-warning">LACTOSE INTOLERANT</div>
+			}
+		</div>
+	}
+	
+	<!-- Ability Cooldowns -->
+	<div class="abilities-section">
+		<div class="ability-cooldowns">
+			<div class="ability-1">
+				<div class="ability-icon">1</div>
+				@if (GetAbility1Cooldown() > 0)
+				{
+					<div class="cooldown-text">@GetAbility1Cooldown().ToString("F1")</div>
+				}
+			</div>
+			<div class="ability-2">
+				<div class="ability-icon">2</div>
+				@if (GetAbility2Cooldown() > 0)
+				{
+					<div class="cooldown-text">@GetAbility2Cooldown().ToString("F1")</div>
+				}
+			</div>
+			<div class="ultimate">
+				<div class="ability-icon">R</div>
+				@if (GetUltimateCooldown() > 0)
+				{
+					<div class="cooldown-text">@GetUltimateCooldown().ToString("F1")</div>
+				}
+			</div>
+		</div>
+	</div>
+	
+	<!-- Party Status -->
+	<div class="party-section">
+		@foreach (var ally in GetAllies())
+		{
+			<div class="party-member">
+				<div class="party-name">@GetPlayerName(ally)</div>
+				<div class="party-health-bar">
+					<div class="party-health-fill" style="width: @GetAllyHealthPercentage(ally)%"></div>
+				</div>
+			</div>
+		}
+	</div>
+</root>
+
+@code {
+	[Property] public TrinityPlayer Player { get; set; }
+	
+	protected override void OnStart()
+	{
+		base.OnStart();
+		Log.Info("GameHUD OnStart called");
+		
+		// Find the local player
+		Player = Scene.GetAllComponents<TrinityPlayer>()
+			.Where(p => !p.IsProxy)
+			.FirstOrDefault();
+			
+		Log.Info($"GameHUD found player: {Player?.ClassType}");
+	}
+	
+	string GetHealthText()
+	{
+		if (Player == null) return "0 / 0";
+		return $"{Player.CurrentHealth:F0} / {Player.MaxHealth:F0}";
+	}
+	
+	float GetHealthPercentage()
+	{
+		if (Player == null) return 0;
+		return Math.Clamp((Player.CurrentHealth / Player.MaxHealth) * 100f, 0f, 100f);
+	}
+	
+	float GetManaPercentage()
+	{
+		if (Player == null) return 0;
+		return Math.Clamp((Player.CurrentMana / Player.MaxMana) * 100f, 0f, 100f);
+	}
+	
+	float GetMilkPercentage(AbbyHealer healer)
+	{
+		return Math.Clamp((healer.CurrentMilk / healer.MaxMilk) * 100f, 0f, 100f);
+	}
+	
+	float GetTrunkXPPercentage(TrunkWarrior trunk)
+	{
+		if (trunk.TrunkLevel >= 12) return 100f;
+		float xpNeeded = trunk.TrunkLevelXPRequired * trunk.TrunkLevel;
+		return Math.Clamp((trunk.TrunkExperience / xpNeeded) * 100f, 0f, 100f);
+	}
+	
+	float GetAbility1Cooldown()
+	{
+		if (Player == null) return 0;
+		return Math.Max(0, Player.Ability1Cooldown);
+	}
+	
+	float GetAbility2Cooldown()
+	{
+		if (Player == null) return 0;
+		return Math.Max(0, Player.Ability2Cooldown);
+	}
+	
+	float GetUltimateCooldown()
+	{
+		if (Player == null) return 0;
+		return Math.Max(0, Player.UltimateCooldown);
+	}
+	
+	List<TrinityPlayer> GetAllies()
+	{
+		if (Player == null) return new List<TrinityPlayer>();
+		
+		return Scene.GetAllComponents<TrinityPlayer>()
+			.Where(p => p != Player && p.IsAlive && p.ClassType != TrinityClassType.None)
+			.ToList();
+	}
+	
+	string GetPlayerName(TrinityPlayer player)
+	{
+		return player.ClassType.ToString();
+	}
+	
+	float GetAllyHealthPercentage(TrinityPlayer ally)
+	{
+		return Math.Clamp((ally.CurrentHealth / ally.MaxHealth) * 100f, 0f, 100f);
+	}
+	
+	protected override int BuildHash()
+	{
+		if (Player == null) return 0;
+		
+		var hash = HashCode.Combine(
+			Player.CurrentHealth,
+			Player.CurrentMana,
+			Player.CurrentResource,
+			Player.Ability1Cooldown,
+			Player.Ability2Cooldown,
+			Player.UltimateCooldown,
+			Player.ClassType
+		);
+		
+		// Debug: Log when UI is rebuilding
+		Log.Info($"GameHUD BuildHash called: {hash}");
+		
+		return hash;
+	}
+	
+	protected override void OnUpdate()
+	{
+		base.OnUpdate();
+		// Force rebuild every few seconds for testing
+		if (Time.Now % 2f < 0.1f)
+		{
+			StateHasChanged();
+		}
+	}
+}

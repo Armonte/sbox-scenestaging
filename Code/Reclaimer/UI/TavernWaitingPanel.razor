@@ -1,0 +1,106 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using Reclaimer;
+@inherits PanelComponent
+
+<root class="tavern-waiting-panel">
+	<div class="tavern-header">
+		<h1>🍺 The Reclaimer's Tavern 🍺</h1>
+		<p>Prepare for the ultimate boss encounter</p>
+	</div>
+	
+	<div class="party-status">
+		<h2>Party Composition Ready</h2>
+		<div class="party-roles">
+			<div class="role-display">
+				<span class="role-icon">🐢</span>
+				<span class="role-name">Leo the Phranklyn</span>
+				<span class="role-type">TANK</span>
+			</div>
+			<div class="role-display">
+				<span class="role-icon">🥛</span>
+				<span class="role-name">Holy Milker Abby</span>
+				<span class="role-type">HEALER</span>
+			</div>
+			<div class="role-display">
+				<span class="role-icon">🐘</span>
+				<span class="role-name">Mighty Trunk Warrior</span>
+				<span class="role-type">DPS</span>
+			</div>
+		</div>
+	</div>
+	
+	<div class="encounter-info">
+		<h3>🔥 The Reclaimer Awaits 🔥</h3>
+		<div class="boss-description">
+			<p>A mechanical guardian with devastating abilities:</p>
+			<ul>
+				<li><strong>Volatile Charges</strong> - Timed explosives requiring coordination</li>
+				<li><strong>Ephemeral Motes</strong> - Add waves that must be intercepted</li>
+				<li><strong>Planetcracker Beams</strong> - Rotating laser walls</li>
+				<li><strong>Reclaim Shield</strong> - DPS burn phases</li>
+				<li><strong>Eternity Overdrive</strong> - Escalating final phase</li>
+			</ul>
+		</div>
+	</div>
+	
+	<div class="ready-section">
+		<div class="timer-display">
+			<span class="timer-label">Time Remaining:</span>
+			<span class="timer-value">@GetTimeRemaining()</span>
+		</div>
+		
+		<div class="ready-status">
+			@if (IsPlayerReady)
+			{
+				<div class="ready-indicator ready">✅ You are READY</div>
+			}
+			else
+			{
+				<button class="ready-button" @onclick="ToggleReady">
+					🗡️ READY FOR BATTLE 🗡️
+				</button>
+			}
+		</div>
+		
+		<div class="auto-start-notice">
+			<p>Arena will start automatically when timer expires or all players ready up</p>
+		</div>
+	</div>
+</root>
+
+@code {
+	GameFlowManager FlowManager => Scene?.GetAllComponents<GameFlowManager>().FirstOrDefault();
+	
+	bool IsPlayerReady { get; set; } = false;
+	
+	string GetTimeRemaining()
+	{
+		var timeLeft = FlowManager?.GetTavernTimeRemaining() ?? 0f;
+		var minutes = (int)(timeLeft / 60);
+		var seconds = (int)(timeLeft % 60);
+		return $"{minutes:00}:{seconds:00}";
+	}
+	
+	void ToggleReady()
+	{
+		if (!IsPlayerReady)
+		{
+			IsPlayerReady = true;
+			
+			// Notify the flow manager
+			var connection = Connection.Local;
+			FlowManager?.PlayerReady(connection);
+			
+			Log.Info("Player marked as ready for arena!");
+		}
+	}
+	
+	protected override int BuildHash()
+	{
+		return HashCode.Combine(
+			FlowManager?.GetTavernTimeRemaining(),
+			IsPlayerReady
+		);
+	}
+}

@@ -1,17 +1,28 @@
 {
   "RootObject": {
     "__guid": "53e56e2d-ff97-49c8-b74e-8d37dbe8da94",
+    "__version": 1,
     "Flags": 0,
     "Name": "cube",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
     "Enabled": true,
+    "NetworkMode": 2,
+    "NetworkInterpolation": true,
+    "NetworkOrphaned": 0,
+    "OwnerTransfer": 1,
     "Components": [
       {
         "__type": "Sandbox.ModelRenderer",
         "__guid": "95b27999-dfbb-4893-9298-28b7bc65e897",
+        "__enabled": true,
         "BodyGroups": 18446744073709551615,
         "CreateAttachments": false,
         "MaterialGroup": null,
         "MaterialOverride": null,
+        "Materials": null,
         "Model": "models/dev/box.vmdl",
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
@@ -31,6 +42,7 @@
       {
         "__type": "Sandbox.ActionGraphs.ActionsInvoker",
         "__guid": "a31dd240-92fe-4f2d-83d7-00c4eac5e9a9",
+        "__enabled": true,
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
@@ -87,7 +99,7 @@
               "DstName": "_target"
             },
             {
-              "Id": 244,
+              "Id": 77,
               "Value": "1,0,0,1",
               "DstId": 74,
               "DstName": "_value"
@@ -107,16 +119,10 @@
       }
     ],
     "Children": [],
-    "__variables": [],
     "__properties": {
-      "FixedUpdateFrequency": 50,
-      "MaxFixedUpdates": 5,
-      "NetworkFrequency": 30,
       "NetworkInterpolation": true,
-      "PhysicsSubSteps": 1,
-      "ThreadedAnimation": true,
       "TimeScale": 1,
-      "UseFixedUpdate": true,
+      "WantsSystemScene": true,
       "Metadata": {},
       "NavMesh": {
         "Enabled": false,
@@ -130,13 +136,14 @@
         "ExcludedBodies": "",
         "IncludedBodies": ""
       }
-    }
+    },
+    "__variables": []
   },
+  "ResourceVersion": 2,
   "ShowInMenu": false,
   "MenuPath": null,
   "MenuIcon": null,
   "DontBreakAsTemplate": false,
-  "ResourceVersion": 1,
   "__references": [],
-  "__version": 1
+  "__version": 2
 }

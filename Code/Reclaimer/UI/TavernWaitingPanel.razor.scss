@@ -1,0 +1,210 @@
+.tavern-waiting-panel {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background: linear-gradient(135deg, rgba(60, 40, 20, 0.95), rgba(40, 20, 10, 0.95));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	padding: 40px;
+	box-sizing: border-box;
+	
+	.tavern-header {
+		text-align: center;
+		margin-bottom: 30px;
+		
+		h1 {
+			font-size: 42px;
+			color: #ffdd44;
+			text-shadow: 0 0 20px rgba(255, 221, 68, 0.5);
+			margin-bottom: 10px;
+		}
+		
+		p {
+			font-size: 18px;
+			color: rgba(255, 255, 255, 0.8);
+			font-style: italic;
+		}
+	}
+	
+	.party-status {
+		background: rgba(20, 30, 50, 0.8);
+		border: 2px solid rgba(255, 221, 68, 0.3);
+		border-radius: 15px;
+		padding: 25px;
+		margin-bottom: 30px;
+		width: 100%;
+		max-width: 600px;
+		
+		h2 {
+			color: #fff;
+			text-align: center;
+			margin-bottom: 20px;
+			font-size: 24px;
+		}
+		
+		.party-roles {
+			display: flex;
+			justify-content: space-between;
+			gap: 20px;
+			
+			.role-display {
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				flex: 1;
+				
+				.role-icon {
+					font-size: 48px;
+					margin-bottom: 10px;
+				}
+				
+				.role-name {
+					color: #fff;
+					font-size: 16px;
+					font-weight: bold;
+					margin-bottom: 5px;
+				}
+				
+				.role-type {
+					color: #ffcc00;
+					font-size: 14px;
+					letter-spacing: 1px;
+					padding: 3px 8px;
+					background: rgba(255, 200, 0, 0.1);
+					border-radius: 5px;
+				}
+			}
+		}
+	}
+	
+	.encounter-info {
+		background: rgba(50, 20, 20, 0.8);
+		border: 2px solid rgba(255, 100, 100, 0.3);
+		border-radius: 15px;
+		padding: 25px;
+		margin-bottom: 30px;
+		width: 100%;
+		max-width: 700px;
+		
+		h3 {
+			color: #ff6666;
+			text-align: center;
+			margin-bottom: 15px;
+			font-size: 22px;
+			text-shadow: 0 0 10px rgba(255, 102, 102, 0.5);
+		}
+		
+		.boss-description {
+			p {
+				color: rgba(255, 255, 255, 0.9);
+				font-size: 16px;
+				margin-bottom: 15px;
+				text-align: center;
+			}
+			
+			ul {
+				list-style: none;
+				padding: 0;
+				margin: 0;
+				
+				li {
+					color: rgba(255, 255, 255, 0.8);
+					font-size: 14px;
+					margin-bottom: 8px;
+					padding-left: 20px;
+					position: relative;
+					
+					&:before {
+						content: '⚔️';
+						position: absolute;
+						left: 0;
+					}
+					
+					strong {
+						color: #ff9999;
+					}
+				}
+			}
+		}
+	}
+	
+	.ready-section {
+		text-align: center;
+		
+		.timer-display {
+			margin-bottom: 25px;
+			
+			.timer-label {
+				color: rgba(255, 255, 255, 0.7);
+				font-size: 18px;
+				margin-right: 10px;
+			}
+			
+			.timer-value {
+				color: #ffdd44;
+				font-size: 32px;
+				font-weight: bold;
+				text-shadow: 0 0 10px rgba(255, 221, 68, 0.5);
+				font-family: 'Courier New', monospace;
+			}
+		}
+		
+		.ready-status {
+			margin-bottom: 20px;
+			
+			.ready-button {
+				background: linear-gradient(135deg, #ff4444, #cc0000);
+				border: none;
+				border-radius: 10px;
+				padding: 15px 40px;
+				font-size: 20px;
+				font-weight: bold;
+				color: #fff;
+				cursor: pointer;
+				transition: all 0.3s ease;
+				text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+				box-shadow: 0 4px 15px rgba(255, 68, 68, 0.3);
+				
+				&:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 6px 20px rgba(255, 68, 68, 0.4);
+					background: linear-gradient(135deg, #ff6666, #ee0000);
+				}
+				
+				&:active {
+					transform: translateY(0);
+				}
+			}
+			
+			.ready-indicator.ready {
+				font-size: 24px;
+				color: #00ff88;
+				font-weight: bold;
+				text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+				animation: pulse 2s infinite;
+			}
+		}
+		
+		.auto-start-notice {
+			p {
+				color: rgba(255, 255, 255, 0.6);
+				font-size: 14px;
+				font-style: italic;
+			}
+		}
+	}
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.7;
+		transform: scale(1.05);
+	}
+}

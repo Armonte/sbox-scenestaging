@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(dotnet build:*)",
+      "WebFetch(domain:sbox.game)",
+      "WebFetch(domain:wiki.facepunch.com)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}

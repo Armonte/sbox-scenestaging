@@ -1,0 +1,187 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using Reclaimer;
+@inherits PanelComponent
+
+<root>
+    <div class="simple-hud">
+        
+        @if (GetClassStatus() != "")
+        {
+            <div class="class-status @GetClassType().ToLower()">
+                @GetClassStatus()
+            </div>
+        }
+        
+        <div class="abilities">
+            <div class="ability @GetAbilityClass("ability1")">
+                <div class="key">LMB</div>
+                <div class="cooldown">@GetAbility1Cooldown()</div>
+            </div>
+            
+            <div class="ability @GetAbilityClass("ability2")">
+                <div class="key">RMB</div>
+                <div class="cooldown">@GetAbility2Cooldown()</div>
+            </div>
+            
+            <div class="ability @GetAbilityClass("ultimate")">
+                <div class="key">MMB</div>
+                <div class="cooldown">@GetUltimateCooldown()</div>
+            </div>
+        </div>
+        
+        <div class="vitals">
+            <div class="health">
+                <div class="icon">favorite</div>
+                <div class="value">@GetHealth()</div>
+            </div>
+            
+            <div class="mana">
+                <div class="icon">bolt</div>
+                <div class="value">@GetMana()</div>
+            </div>
+            
+            <div class="resource">
+                <div class="icon">star</div>
+                <div class="value">@GetResource()</div>
+            </div>
+        </div>
+        
+    </div>
+</root>
+
+@code {
+    
+    TrinityPlayer GetPlayer()
+    {
+        return Scene?.GetAllComponents<TrinityPlayer>()
+            ?.Where(p => !p.IsProxy)
+            ?.FirstOrDefault();
+    }
+    
+    string GetPlayerType()
+    {
+        var player = GetPlayer();
+        return player?.ClassType.ToString() ?? "None";
+    }
+    
+    string GetHealth()
+    {
+        var player = GetPlayer();
+        return player != null ? $"{player.CurrentHealth:F0}/{player.MaxHealth:F0}" : "0/0";
+    }
+    
+    string GetMana()
+    {
+        var player = GetPlayer();
+        return player != null ? $"{player.CurrentMana:F0}/{player.MaxMana:F0}" : "0/0";
+    }
+    
+    string GetResource()
+    {
+        var player = GetPlayer();
+        return player != null ? $"{player.CurrentResource:F0}/{player.MaxResource:F0}" : "0/0";
+    }
+    
+    string GetClassType()
+    {
+        var player = GetPlayer();
+        return player?.ClassType.ToString() ?? "None";
+    }
+    
+    string GetAbility1Cooldown()
+    {
+        var player = GetPlayer();
+        if (player == null) return "";
+        return player.Ability1Cooldown > 0 ? $"{player.Ability1Cooldown:F1}" : "";
+    }
+    
+    string GetAbility2Cooldown()
+    {
+        var player = GetPlayer();
+        if (player == null) return "";
+        return player.Ability2Cooldown > 0 ? $"{player.Ability2Cooldown:F1}" : "";
+    }
+    
+    string GetUltimateCooldown()
+    {
+        var player = GetPlayer();
+        if (player == null) return "";
+        return player.UltimateCooldown > 0 ? $"{player.UltimateCooldown:F1}" : "";
+    }
+    
+    string GetAbilityClass(string ability)
+    {
+        var player = GetPlayer();
+        if (player == null) return "";
+        
+        bool onCooldown = ability switch
+        {
+            "ability1" => player.Ability1Cooldown > 0,
+            "ability2" => player.Ability2Cooldown > 0,
+            "ultimate" => player.UltimateCooldown > 0,
+            _ => false
+        };
+        
+        return onCooldown ? "on-cooldown" : "ready";
+    }
+    
+    string GetClassStatus()
+    {
+        var player = GetPlayer();
+        if (player == null) return "";
+        
+        return player switch
+        {
+            LeoTank leo => GetLeoStatus(leo),
+            // AbbyHealer abby => GetAbbyStatus(abby),
+            // TrunkWarrior trunk => GetTrunkStatus(trunk),
+            _ => ""
+        };
+    }
+    
+    string GetLeoStatus(LeoTank leo)
+    {
+        var status = new List<string>();
+        
+        // Show current stance
+        if (leo.HeadRotated) 
+            status.Add("🛡️ DEFENSIVE");
+        else 
+            status.Add("⚔️ BATTLE");
+            
+        if (leo.InShell) status.Add("🐢 SHELL MODE");
+        if (!leo.HasSword) status.Add("NO SWORD");
+        if (leo.LilFrankActive) status.Add("👶 LIL FRANK");
+        
+        var parryTime = leo.GetParryWindowRemaining();
+        if (parryTime > 0) status.Add($"✨ PARRY {parryTime:F1}s");
+        
+        return string.Join(" • ", status);
+    }
+    
+    protected override int BuildHash()
+    {
+        var player = GetPlayer();
+        if (player == null) return 0;
+        
+        var hash = HashCode.Combine(
+            player.CurrentHealth,
+            player.CurrentMana,
+            player.CurrentResource,
+            player.Ability1Cooldown,
+            player.Ability2Cooldown,
+            player.UltimateCooldown,
+            player.ClassType
+        );
+        
+        // Add Leo-specific hash components
+        if (player is LeoTank leo)
+        {
+            hash = HashCode.Combine(hash, leo.InShell, leo.HasSword, leo.LilFrankActive);
+        }
+        
+        return hash;
+    }
+    
+}
