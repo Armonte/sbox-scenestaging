@@ -32,7 +32,10 @@ namespace Reclaimer
 		
 		public void OnActive(Connection channel)
 		{
-			Log.Info($"Player {channel.DisplayName} connected");
+			Log.Info($"Player {channel.DisplayName} connected. Current class counts - Tank:{TankCount}, Healer:{HealerCount}, DPS:{DPSCount}");
+			
+			// Force sync class counts to all clients (especially the new one)
+			SyncClassCountsToClient(TankCount, HealerCount, DPSCount);
 			
 			ShowClassSelectionUI(channel);
 		}
@@ -74,12 +77,77 @@ namespace Reclaimer
 			
 			connectionToPlayer[channel] = tempPlayer;
 			
-			// Add UI component that will show class selection
-			var classSelectionUI = tempPlayer.Components.GetOrCreate<ClassSelectionUI>();
-			classSelectionUI.SpawnManager = this;
-			classSelectionUI.PlayerConnection = channel;
+			Log.Info($"Temp player spawned for {channel.DisplayName}");
 			
-			Log.Info($"ClassSelectionUI component added to temp player for {channel.DisplayName}");
+			// Send RPC to create UI on the target client
+			CreateClassSelectionUIForPlayer(channel.DisplayName);
+		}
+		
+		[Rpc.Broadcast]
+		void CreateClassSelectionUIForPlayer(string targetPlayerName)
+		{
+			// Only create UI if this RPC is for the local player
+			if (Connection.Local?.DisplayName != targetPlayerName) 
+			{
+				Log.Info($"RPC not for local player. Target: {targetPlayerName}, Local: {Connection.Local?.DisplayName}");
+				return;
+			}
+			
+			Log.Info($"Creating class selection UI for local player: {targetPlayerName}");
+			
+			// Find the TrinitySpawnManager on this client
+			var spawnManager = Scene.GetAllComponents<TrinitySpawnManager>().FirstOrDefault();
+			if (spawnManager == null)
+			{
+				Log.Error("Cannot find TrinitySpawnManager on client");
+				return;
+			}
+			
+			Log.Info($"Client sees class counts - Tank:{spawnManager.TankCount}, Healer:{spawnManager.HealerCount}, DPS:{spawnManager.DPSCount}");
+			
+			// Create a local UI GameObject (not networked)
+			var uiObject = Scene.CreateObject();
+			uiObject.Name = "ClassSelectionHUD";
+			
+			// Add ScreenPanel component
+			var screenPanel = uiObject.Components.GetOrCreate<ScreenPanel>();
+			
+			// Add ClassSelectionPanel component first
+			var panel = uiObject.Components.GetOrCreate<ClassSelectionPanel>();
+			
+			// Add ClassSelectionUI component locally
+			var classSelectionUI = uiObject.Components.GetOrCreate<ClassSelectionUI>();
+			classSelectionUI.SpawnManager = spawnManager;
+			classSelectionUI.PlayerConnection = Connection.Local;
+			
+			// Give the ClassSelectionUI component a reference to its UI object for cleanup
+			classSelectionUI.SetUIObject(uiObject);
+			
+			// Set the ClassSelectionUI reference on the panel component
+			if (panel != null)
+			{
+				panel.SetSelector(classSelectionUI);
+				Log.Info($"Panel selector reference set successfully");
+			}
+			else
+			{
+				Log.Warning("ClassSelectionPanel component not found on UI object");
+			}
+			
+			Log.Info($"Local ClassSelectionUI created for {targetPlayerName} with SpawnManager: {spawnManager != null} and PlayerConnection: {Connection.Local?.DisplayName}");
+		}
+		
+		[Rpc.Broadcast]
+		public void RequestClassSelection(TrinityClassType classType)
+		{
+			if (!Networking.IsHost) return;
+			
+			// Find the connection that made this RPC call
+			var callerConnection = Rpc.Caller;
+			
+			Log.Info($"RequestClassSelection RPC called - {callerConnection.DisplayName} wants {classType}");
+			
+			SelectClassForPlayer(callerConnection, classType);
 		}
 		
 		public void SelectClassForPlayer(Connection channel, TrinityClassType classType)
@@ -222,6 +290,10 @@ namespace Reclaimer
 		
 		void UpdateClassCount(TrinityClassType classType, int delta)
 		{
+			var oldTank = TankCount;
+			var oldHealer = HealerCount; 
+			var oldDPS = DPSCount;
+			
 			switch (classType)
 			{
 				case TrinityClassType.Tank:
@@ -234,6 +306,33 @@ namespace Reclaimer
 					DPSCount = Math.Max(0, DPSCount + delta);
 					break;
 			}
+			
+			Log.Info($"Class counts updated: Tank:{oldTank}→{TankCount}, Healer:{oldHealer}→{HealerCount}, DPS:{oldDPS}→{DPSCount}");
+			
+			// Force sync to all clients
+			SyncClassCountsToClient(TankCount, HealerCount, DPSCount);
+		}
+		
+		[Rpc.Broadcast]
+		void BroadcastClassCounts()
+		{
+			Log.Info($"Broadcasting class counts - Tank:{TankCount}, Healer:{HealerCount}, DPS:{DPSCount}");
+		}
+		
+		[Rpc.Broadcast]
+		void SyncClassCountsToClient(int tankCount, int healerCount, int dpsCount)
+		{
+			// Only update counts on clients, not on the host (host already has correct counts)
+			if (Networking.IsHost) return;
+			
+			Log.Info($"SyncClassCountsToClient RPC received - Tank:{tankCount}, Healer:{healerCount}, DPS:{dpsCount}");
+			
+			// Force update the counts on the client
+			TankCount = tankCount;
+			HealerCount = healerCount;
+			DPSCount = dpsCount;
+			
+			Log.Info($"Client class counts updated - Tank:{TankCount}, Healer:{HealerCount}, DPS:{DPSCount}");
 		}
 		
 		Transform GetNextSpawnPoint()

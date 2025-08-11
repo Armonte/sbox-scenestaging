@@ -13,33 +13,29 @@ namespace Reclaimer
 		
 		private GameObject uiObject;
 		
+		public void SetUIObject(GameObject uiObj)
+		{
+			uiObject = uiObj;
+			Log.Info($"ClassSelectionUI UI object reference set");
+		}
+		
 		protected override void OnStart()
 		{
 			base.OnStart();
 			
-			Log.Info($"ClassSelectionUI OnStart - IsProxy: {IsProxy}");
+			Log.Info($"ClassSelectionUI OnStart - IsProxy: {IsProxy}, PlayerConnection: {PlayerConnection?.DisplayName}");
 			
-			// Only show UI for local player
-			if (!IsProxy)
+			// Don't create UI in OnStart - it should be created by RPC only
+			// The RPC will set the references and create all necessary UI components
+			if (SpawnManager != null && PlayerConnection != null)
 			{
-				// Disable player movement
+				Log.Info($"ClassSelectionUI initialized for player: {PlayerConnection?.DisplayName}");
+				// Disable player movement when UI is properly configured
 				DisablePlayerMovement();
-				
-				// Create a UI GameObject with ScreenPanel (like your MMO HUD setup)
-				uiObject = Scene.CreateObject();
-				uiObject.Name = "ClassSelectionHUD";
-				
-				// Add ScreenPanel component
-				var screenPanel = uiObject.Components.GetOrCreate<ScreenPanel>();
-				
-				// Add our ClassSelectionPanel component
-				var panel = uiObject.Components.GetOrCreate<ClassSelectionPanel>();
-				
-				Log.Info($"ClassSelectionHUD created with ScreenPanel and ClassSelectionPanel");
 			}
 			else
 			{
-				Log.Info("Skipping UI creation - this is a proxy player");
+				Log.Info($"ClassSelectionUI waiting for RPC configuration - SpawnManager: {SpawnManager != null}, PlayerConnection: {PlayerConnection != null}");
 			}
 		}
 		
@@ -51,15 +47,15 @@ namespace Reclaimer
 			
 			if (SpawnManager != null && PlayerConnection != null)
 			{
-				Log.Info("Calling SpawnManager.SelectClassForPlayer");
+				Log.Info("Calling SpawnManager.RequestClassSelection RPC");
 				
 				// Remove the UI and re-enable movement
 				CleanupUI();
 				EnablePlayerMovement();
 				
-				// Request class selection
-				SpawnManager.SelectClassForPlayer(PlayerConnection, classType);
-				Log.Info($"Requested class: {classType}");
+				// Request class selection via RPC (will be handled by host)
+				SpawnManager.RequestClassSelection(classType);
+				Log.Info($"Requested class via RPC: {classType}");
 			}
 			else
 			{

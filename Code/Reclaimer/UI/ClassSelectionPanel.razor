@@ -6,8 +6,8 @@
 
 <root class="class-selection-panel @(IsTransitioningOut ? "transitioning-out" : "")">
 	<div class="header">
-		<h1>Choose Your Trinity Class</h1>
-		<p>Select your role in the raid party</p>
+		<h1>Forge Your Destiny</h1>
+		<p>Choose your path in the eternal struggle against The Reclaimer</p>
 	</div>
 	
 	<div class="class-grid">
@@ -22,6 +22,7 @@
 					<div class="feature">@item</div>
 				}
 			</div>
+			<div class="spacer"></div>
 			<div class="class-status">
 				@if (SpawnManager?.TankCount >= 1)
 				{
@@ -46,6 +47,7 @@
 					<div class="feature">@item</div>
 				}
 			</div>
+			<div class="spacer"></div>
 			<div class="class-status">
 				@if (SpawnManager?.HealerCount >= 2)
 				{
@@ -69,6 +71,7 @@
 					<div class="feature">@item</div>
 				}
 			</div>
+			<div class="spacer"></div>
 			<div class="class-status">
 				@if (SpawnManager?.DPSCount >= 2)
 				{
@@ -83,33 +86,57 @@
 	</div>
 	
 	<div class="party-status">
-		<h3>Current Party Composition</h3>
-		<div class="party-members">
-			<div class="role-count">
-				<span class="role-icon">🐢</span>
+		<div class="status-header">
+			<h3>The Chosen Champions</h3>
+			<div class="status-divider"></div>
+		</div>
+		<div class="trinity-shrine">
+			<div class="role-crystal tank @(SpawnManager?.TankCount > 0 ? "filled" : "")">
+				<div class="crystal-glow"></div>
+				<span class="role-icon">🛡️</span>
+				<div class="role-info">
+					<span class="role-name">Guardian</span>
+				</div>
 				<span class="count">@(SpawnManager?.TankCount ?? 0)/1</span>
 			</div>
-			<div class="role-count">
-				<span class="role-icon">🥛</span>
+			<div class="trinity-connector"></div>
+			<div class="role-crystal healer @(SpawnManager?.HealerCount > 0 ? "filled" : "")">
+				<div class="crystal-glow"></div>
+				<span class="role-icon">✨</span>
+				<div class="role-info">
+					<span class="role-name">Life Bringer</span>
+				</div>
 				<span class="count">@(SpawnManager?.HealerCount ?? 0)/2</span>
 			</div>
-			<div class="role-count">
-				<span class="role-icon">🐘</span>
+			<div class="trinity-connector"></div>
+			<div class="role-crystal dps @(SpawnManager?.DPSCount > 0 ? "filled" : "")">
+				<div class="crystal-glow"></div>
+				<span class="role-icon">⚔️</span>
+				<div class="role-info">
+					<span class="role-name">Destroyer</span>
+				</div>
 				<span class="count">@(SpawnManager?.DPSCount ?? 0)/2</span>
 			</div>
 		</div>
 		@if (SpawnManager?.IsPartyComplete() ?? false)
 		{
-			<div class="party-ready">Party Ready!</div>
+			<div class="prophecy-fulfilled">✦ The Trinity is Complete ✦</div>
 		}
 	</div>
 </root>
 
 @code {
 	TrinitySpawnManager SpawnManager => Scene?.GetAllComponents<TrinitySpawnManager>().FirstOrDefault();
-	ClassSelectionUI Selector => Scene?.GetAllComponents<ClassSelectionUI>().FirstOrDefault();
+	private ClassSelectionUI _selector;
+	ClassSelectionUI Selector => _selector ?? Scene?.GetAllComponents<ClassSelectionUI>().FirstOrDefault();
 	
 	[Sync] public bool IsTransitioningOut { get; set; } = false;
+	
+	public void SetSelector(ClassSelectionUI selector)
+	{
+		_selector = selector;
+		Log.Info($"ClassSelectionPanel selector set to: {selector != null}");
+	}
 	
 	string[] GetTankFeatures()
 	{
@@ -136,7 +163,7 @@
 	string[] GetDPSFeatures()
 	{
 		return new string[]
-		{
+	{
 			"• 12-level trunk progression",
 			"• Combo system",
 			"• Reality-bending ultimates", 

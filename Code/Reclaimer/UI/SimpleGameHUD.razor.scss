@@ -19,7 +19,7 @@
         .health, .mana, .resource {
             display: flex;
             align-items: center;
-            background: rgba(0, 0, 0, 0.7);
+            background-color: #000000b3;
             padding: 8px 12px;
             border-radius: 4px;
             min-width: 150px;
@@ -58,7 +58,7 @@
             position: relative;
             width: 60px;
             height: 50px;
-            background: rgba(0, 0, 0, 0.7);
+            background-color: #000000b3;
             border: 2px solid #555;
             border-radius: 6px;
             display: flex;
@@ -91,7 +91,7 @@
 
             &.on-cooldown {
                 border-color: #e74c3c;
-                background: rgba(231, 76, 60, 0.2);
+                background-color: #e74c3c33;
                 
                 .key {
                     color: #e74c3c;
@@ -101,7 +101,7 @@
     }
 
     .class-status {
-        background: rgba(0, 0, 0, 0.8);
+        background-color: #000000cc;
         color: white;
         padding: 10px;
         border-radius: 6px;
@@ -111,17 +111,17 @@
 
         &.tank {
             border-left-color: #3498db;
-            background: rgba(52, 152, 219, 0.2);
+            background-color: #3498db33;
         }
 
         &.healer {
             border-left-color: #2ecc71;
-            background: rgba(46, 204, 113, 0.2);
+            background-color: #2ecc7133;
         }
 
         &.dps {
             border-left-color: #e74c3c;
-            background: rgba(231, 76, 60, 0.2);
+            background-color: #e74c3c33;
         }
     }
 }
