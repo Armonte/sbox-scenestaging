@@ -1,0 +1,101 @@
+AbbyHUD {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 300px;
+    pointer-events: none;
+    z-index: 1000;
+    
+    .hud-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        font-family: Poppins;
+    }
+    
+    // Cork Revolver Ammo Section
+    .ammo-section {
+        .ammo-label {
+            color: #ffcc00;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .ammo-counter {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .ammo-bullets {
+            display: flex;
+            gap: 4px;
+            
+            .bullet {
+                width: 12px;
+                height: 20px;
+                border-radius: 3px;
+                border: 1px solid #666;
+                
+                &.loaded {
+                    background-color: #ffcc00;
+                    box-shadow: 0 0 5px rgba(255, 204, 0, 0.6);
+                }
+                
+                &.empty {
+                    background-color: #333;
+                    opacity: 0.5;
+                }
+            }
+        }
+    }
+    
+    // Milk Gauge Section
+    .milk-section {
+        .milk-label {
+            color: #66ccff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .milk-counter {
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        
+        .milk-bar {
+            position: relative;
+            width: 200px;
+            height: 16px;
+            border: 2px solid #666;
+            border-radius: 8px;
+            background-color: rgba(0,0,0,0.6);
+            
+            .milk-bg {
+                position: absolute;
+                width: 100%;
+                height: 100%;
+                background-color: #222;
+                border-radius: 4px;
+            }
+            
+            .milk-fill {
+                position: absolute;
+                height: 100%;
+                background: linear-gradient(90deg, #66ccff, #ffffff);
+                border-radius: 4px;
+                box-shadow: 0 0 10px rgba(102, 204, 255, 0.6);
+                z-index: 1;
+            }
+        }
+    }
+}

@@ -1,0 +1,57 @@
+@* THIS COMPONENT IS DISABLED - Using enhanced SimpleGameHUD instead *@
+@using Sandbox;
+@using Sandbox.UI;
+@using Reclaimer;
+@inherits PanelComponent
+
+<root>
+    <!-- DISABLED: Using enhanced SimpleGameHUD instead -->
+</root>
+
+@code {
+    private AbbyHealer abbyHealer;
+    private CorkRevolver corkRevolver;
+    private MilkSpray milkSpray;
+    
+    public void Initialize(AbbyHealer abby)
+    {
+        abbyHealer = abby;
+        corkRevolver = abby?.Components.GetInDescendants<CorkRevolver>();
+        milkSpray = abby?.Components.GetInDescendants<MilkSpray>();
+        
+        Log.Info($"AbbyHUD initialized - CorkRevolver: {(corkRevolver != null ? "Found" : "Missing")}, MilkSpray: {(milkSpray != null ? "Found" : "Missing")}");
+    }
+    
+    protected override void OnUpdate()
+    {
+        if (abbyHealer == null || !abbyHealer.IsValid)
+        {
+            Log.Info("AbbyHUD destroying - healer invalid");
+            GameObject.Destroy();
+            return;
+        }
+        StateHasChanged();
+    }
+    
+    protected override void OnStart()
+    {
+        Log.Info("AbbyHUD OnStart called");
+    }
+    
+    // Cork Revolver methods
+    string GetCurrentAmmo() => corkRevolver?.CurrentAmmo.ToString() ?? "0";
+    string GetMaxAmmo() => corkRevolver?.MaxAmmo.ToString() ?? "6";
+    int GetCurrentAmmoInt() => corkRevolver?.CurrentAmmo ?? 0;
+    int GetMaxAmmoInt() => corkRevolver?.MaxAmmo ?? 6;
+    
+    // Milk methods - use AbbyHealer's milk system if MilkSpray not found
+    string GetCurrentMilk() => abbyHealer?.CurrentMilk.ToString("F0") ?? "0";
+    string GetMaxMilk() => abbyHealer?.MaxMilk.ToString("F0") ?? "100";
+    string GetMilkPercentage() => abbyHealer != null ? $"{(abbyHealer.CurrentMilk / abbyHealer.MaxMilk) * 100:F0}" : "0";
+    
+    protected override int BuildHash() => 
+        System.HashCode.Combine(
+            corkRevolver?.CurrentAmmo ?? 0, 
+            abbyHealer?.CurrentMilk ?? 0f
+        );
+}

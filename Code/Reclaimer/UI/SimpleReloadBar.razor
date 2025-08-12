@@ -1,0 +1,44 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using Reclaimer;
+@inherits PanelComponent
+
+<root>
+    <div class="reload-container">
+      <!--  <div class="reload-text">RELOAD - Press R in Golden Zone!</div> -->
+        <div class="reload-bar">
+            <div class="bar-bg"></div>
+            <div class="bar-progress" style="width: @GetProgress()%"></div>
+            <div class="bar-perfect" style="left: @GetPerfectLeft()%; width: @GetPerfectWidth()%"></div>
+            <div class="bar-marker" style="left: @GetMarkerPos()%"></div>
+        </div>
+    </div>
+</root>
+
+@code {
+    private ActiveReloadComponent reloadComponent;
+    
+    public void Initialize(ActiveReloadComponent component)
+    {
+        reloadComponent = component;
+    }
+    
+    protected override void OnUpdate()
+    {
+        if (reloadComponent == null || !reloadComponent.IsActive)
+        {
+            GameObject.Destroy();
+            return;
+        }
+        StateHasChanged();
+    }
+    
+    string GetProgress() => reloadComponent != null ? $"{reloadComponent.ReloadProgress * 100:F0}" : "0";
+    string GetMarkerPos() => reloadComponent != null ? $"{reloadComponent.MarkerPosition * 100:F0}" : "0";
+    string GetPerfectLeft() => reloadComponent != null ? $"{(reloadComponent.PerfectZoneCenter - reloadComponent.PerfectZoneSize * 0.5f) * 100:F0}" : "0";
+    string GetPerfectWidth() => reloadComponent != null ? $"{reloadComponent.PerfectZoneSize * 100:F0}" : "0";
+    string GetVerticalPosition() => reloadComponent != null ? reloadComponent.BarVerticalPosition : "55%";
+    string GetHorizontalPosition() => reloadComponent != null ? reloadComponent.BarHorizontalPosition : "50%";
+    
+    protected override int BuildHash() => reloadComponent?.GetHashCode() ?? 0;
+}

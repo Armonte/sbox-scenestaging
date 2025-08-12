@@ -4,7 +4,7 @@ using System;
 
 namespace Reclaimer
 {
-	public abstract class TrinityPlayer : Component
+	public abstract class TrinityPlayer : Component, IReclaimerDamageable, IReclaimerHealable
 	{
 		[Property] public float MaxHealth { get; set; } = 1000f;
 		[Property] public float MaxMana { get; set; } = 100f;
@@ -27,6 +27,9 @@ namespace Reclaimer
 		[Sync] public bool IsCasting { get; set; }
 		[Sync] public float CastProgress { get; set; }
 		[Sync] public TrinityClassType ClassType { get; set; }
+		
+		// IReclaimerHealable implementation
+		public bool NeedsHealing => IsAlive && CurrentHealth < MaxHealth;
 		
 		[Sync] public Angles EyeAngles { get; set; }
 		[Sync] public bool IsRunning { get; set; }
@@ -59,14 +62,6 @@ namespace Reclaimer
 			
 			// Reset eye angles to prevent movement drift
 			EyeAngles = new Angles(0, 0, 0);
-			
-			// Create HUD for local player
-			if (!IsProxy)
-			{
-				// Add SimpleGameHUD component to this player GameObject
-				GameObject.Components.GetOrCreate<SimpleGameHUD>();
-				Log.Info($"SimpleGameHUD added to local player {ClassType}");
-			}
 			
 			InitializeClass();
 		}
@@ -258,6 +253,20 @@ namespace Reclaimer
 			}
 			
 			OnDamageTakenRPC(damage, attacker?.GameObject.Id ?? Guid.Empty);
+		}
+		
+		// IDamageable implementation - simplified interface
+		public void OnDamage(float damage, GameObject attacker = null)
+		{
+			var attackerPlayer = attacker?.Components.Get<TrinityPlayer>();
+			TakeDamage(damage, attackerPlayer);
+		}
+		
+		// IReclaimerHealable implementation
+		public void OnHeal(float healAmount, GameObject healer = null)
+		{
+			var healerPlayer = healer?.Components.Get<TrinityPlayer>();
+			Heal(healAmount, healerPlayer);
 		}
 		
 		[Rpc.Broadcast]

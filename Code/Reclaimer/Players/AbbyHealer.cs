@@ -15,6 +15,13 @@ namespace Reclaimer
 		[Property] public float DivineSplillHealRadius { get; set; } = 500f;
 		[Property] public GameObject MilkPortalPrefab { get; set; }
 		
+		// Weapon Components
+		private CorkRevolver corkRevolver;
+		private MilkSpray milkSpray;
+		
+		// UI Components
+		private GameObject hudObject;
+		
 		[Sync] public float CurrentMilk { get; set; }
 		[Sync] public float MilkSpoilageTimer { get; set; }
 		[Sync] public bool IsCrying { get; set; }
@@ -37,7 +44,28 @@ namespace Reclaimer
 			CurrentMilk = 0f;
 			MilkSpoilageTimer = MilkSpoilTime;
 			
+			// Create HUD for local player
+			if (!IsProxy)
+			{
+				CreateHUD();
+			}
+			
 			// ALL other properties set via prefab editor
+		}
+		
+		void CreateHUD()
+		{
+			// Create a separate UI GameObject for the HUD
+			var hudObject = Scene.CreateObject();
+			hudObject.Name = $"{ClassType}HUD";
+			
+			// Add ScreenPanel component for UI rendering
+			var screenPanel = hudObject.Components.GetOrCreate<ScreenPanel>();
+			
+			// Add SimpleGameHUD component
+			var hud = hudObject.Components.GetOrCreate<SimpleGameHUD>();
+			
+			Log.Info($"SimpleGameHUD created for local player {ClassType}");
 		}
 		
 		protected override void OnStart()
@@ -45,36 +73,47 @@ namespace Reclaimer
 			base.OnStart();
 			// Store original speed AFTER prefab properties are fully loaded
 			originalMovementSpeed = MovementSpeed;
+			
+			// Find weapon components in entire hierarchy (including children)
+			corkRevolver = Components.GetInDescendants<CorkRevolver>();
+			milkSpray = Components.GetInDescendants<MilkSpray>();
+			
+			if (corkRevolver == null)
+			{
+				Log.Warning("No CorkRevolver found in AbbyHealer hierarchy!");
+			}
+			else
+			{
+				Log.Info($"Found CorkRevolver: {corkRevolver.GameObject.Name}");
+			}
+			
+			if (milkSpray == null)  
+			{
+				Log.Warning("No MilkSpray found in AbbyHealer hierarchy!");
+			}
+			else
+			{
+				Log.Info($"Found MilkSpray: {milkSpray.GameObject.Name}");
+			}
+			
+			Log.Info($"Abby's weapons initialized: Cork Revolver and Milk Spray");
+			
+			// Note: Using enhanced SimpleGameHUD instead of separate AbbyHUD
+			Log.Info("Abby will use enhanced SimpleGameHUD showing cork ammo and milk status");
 		}
 		
 		public override void UseAbility1()
 		{
-			var target = GetTargetedAlly();
-			if (target == null)
-			{
-				Log.Warning("No ally targeted for healing!");
-				return;
-			}
-			
-			if (CurrentMilk < MilkCostPerHeal)
-			{
-				Log.Warning("Not enough milk! Need to shoot enemies with cork gun first.");
-				return;
-			}
-			
-			FireMilkGunRPC(target.GameObject.Id);
+			// Ability1 is now handled by Cork Revolver component
+			// This method kept for compatibility with TrinityPlayer base class
+			Log.Info("UseAbility1 called - Cork Revolver handles Attack1 input directly");
 		}
 		
 		public override void UseAbility2()
 		{
-			var target = GetNearestEnemy();
-			if (target == null)
-			{
-				Log.Warning("No enemy to shoot!");
-				return;
-			}
-			
-			FireCorkGunRPC(target.GameObject.Id);
+			// Ability2 is now handled by Milk Spray component  
+			// This method kept for compatibility with TrinityPlayer base class
+			Log.Info("UseAbility2 called - Milk Spray handles Attack2 input directly");
 		}
 		
 		public override void UseUltimate()
@@ -83,6 +122,32 @@ namespace Reclaimer
 			if (IsCrying) return;
 			
 			PerformDivineSpillRPC();
+		}
+		
+		/// <summary>
+		/// Called by Cork Revolver when cork hits an enemy
+		/// </summary>
+		public void AddMilk(float amount)
+		{
+			CurrentMilk = Math.Min(CurrentMilk + amount, MaxMilk);
+			
+			// Reset spoilage timer when milk is added
+			MilkSpoilageTimer = MilkSpoilTime;
+			
+			Log.Info($"Milk added: +{amount}. Total: {CurrentMilk}/{MaxMilk}");
+		}
+		
+		/// <summary>
+		/// Used by Milk Spray to consume milk resource
+		/// </summary>
+		public bool ConsumeMilk(float amount)
+		{
+			if (CurrentMilk >= amount)
+			{
+				CurrentMilk -= amount;
+				return true;
+			}
+			return false;
 		}
 		
 		protected override void HandleClassSpecificUpdate()
@@ -293,9 +358,56 @@ namespace Reclaimer
 			return GetNearestAlly();
 		}
 		
+		
 		protected override float GetAbility1Cooldown() => 1.5f;
 		protected override float GetAbility2Cooldown() => 0.5f;
 		protected override float GetUltimateCooldown() => 120f;
+		
+		void CreateHUD()
+		{
+			// Only create HUD for the local player
+			if (!IsProxy && IsValid)
+			{
+				Log.Info("Starting Abby HUD creation...");
+				
+				// Remove any existing SimpleGameHUD that might conflict
+				var existingHUD = GameObject.Components.Get<SimpleGameHUD>();
+				if (existingHUD != null)
+				{
+					existingHUD.Destroy();
+					Log.Info("Removed existing SimpleGameHUD");
+				}
+				
+				// Also check for any existing AbbyHUD to prevent duplicates
+				if (hudObject != null && hudObject.IsValid)
+				{
+					hudObject.Destroy();
+					Log.Info("Removed existing AbbyHUD");
+				}
+				
+				hudObject = Scene.CreateObject();
+				hudObject.Name = "AbbyHUD";
+				var screenPanel = hudObject.Components.GetOrCreate<ScreenPanel>();
+				var hudComponent = hudObject.Components.GetOrCreate<AbbyHUD>();
+				hudComponent.Initialize(this);
+				
+				Log.Info("Abby HUD created successfully!");
+			}
+			else
+			{
+				Log.Info($"Skipping HUD creation - IsProxy: {IsProxy}, IsValid: {IsValid}");
+			}
+		}
+		
+		protected override void OnDestroy()
+		{
+			if (hudObject != null && hudObject.IsValid)
+			{
+				hudObject.Destroy();
+				hudObject = null;
+			}
+			base.OnDestroy();
+		}
 	}
 	
 	public class MilkPortal : Component

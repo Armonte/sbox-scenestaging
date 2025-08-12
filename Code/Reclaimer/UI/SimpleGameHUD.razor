@@ -52,6 +52,16 @@
 
 @code {
     
+    protected override void OnStart()
+    {
+        // UI component started
+    }
+    
+    protected override void OnUpdate()
+    {
+        // StateHasChanged is called automatically by BuildHash changes
+    }
+    
     TrinityPlayer GetPlayer()
     {
         return Scene?.GetAllComponents<TrinityPlayer>()
@@ -134,9 +144,9 @@
         return player switch
         {
             LeoTank leo => GetLeoStatus(leo),
-            // AbbyHealer abby => GetAbbyStatus(abby),
+            AbbyHealer abby => GetAbbyStatus(abby),
             // TrunkWarrior trunk => GetTrunkStatus(trunk),
-            _ => ""
+            _ => $"DEBUG: Unknown player type {player.GetType().Name}"
         };
     }
     
@@ -160,6 +170,34 @@
         return string.Join(" • ", status);
     }
     
+    string GetAbbyStatus(AbbyHealer abby)
+    {
+        var status = new List<string>();
+        
+        // Show cork ammo
+        var corkRevolver = abby.Components.GetInDescendants<CorkRevolver>();
+        if (corkRevolver != null)
+        {
+            status.Add($"🔫 {corkRevolver.CurrentAmmo}/{corkRevolver.MaxAmmo} CORKS");
+        }
+        
+        // Show milk level
+        status.Add($"🥛 {abby.CurrentMilk:F0}/{abby.MaxMilk:F0} MILK");
+        
+        // Show special states
+        if (abby.IsCrying) status.Add("😭 CRYING");
+        if (abby.IsInvincible) status.Add("✨ INVINCIBLE");
+        if (abby.PremiumMilkActive) status.Add("⭐ PREMIUM MILK");
+        
+        // Show milk spoilage timer
+        if (abby.CurrentMilk > 0 && !abby.PremiumMilkActive)
+        {
+            status.Add($"⏰ {abby.MilkSpoilageTimer:F0}s");
+        }
+        
+        return string.Join(" • ", status);
+    }
+    
     protected override int BuildHash()
     {
         var player = GetPlayer();
@@ -179,6 +217,20 @@
         if (player is LeoTank leo)
         {
             hash = HashCode.Combine(hash, leo.InShell, leo.HasSword, leo.LilFrankActive);
+        }
+        
+        // Add Abby-specific hash components
+        if (player is AbbyHealer abby)
+        {
+            var corkRevolver = abby.Components.GetInDescendants<CorkRevolver>();
+            hash = HashCode.Combine(hash, 
+                abby.CurrentMilk, 
+                abby.MilkSpoilageTimer, 
+                abby.IsCrying, 
+                abby.IsInvincible,
+                abby.PremiumMilkActive,
+                corkRevolver?.CurrentAmmo ?? 0
+            );
         }
         
         return hash;
