@@ -44,28 +44,7 @@ namespace Reclaimer
 			CurrentMilk = 0f;
 			MilkSpoilageTimer = MilkSpoilTime;
 			
-			// Create HUD for local player
-			if (!IsProxy)
-			{
-				CreateHUD();
-			}
-			
 			// ALL other properties set via prefab editor
-		}
-		
-		void CreateHUD()
-		{
-			// Create a separate UI GameObject for the HUD
-			var hudObject = Scene.CreateObject();
-			hudObject.Name = $"{ClassType}HUD";
-			
-			// Add ScreenPanel component for UI rendering
-			var screenPanel = hudObject.Components.GetOrCreate<ScreenPanel>();
-			
-			// Add SimpleGameHUD component
-			var hud = hudObject.Components.GetOrCreate<SimpleGameHUD>();
-			
-			Log.Info($"SimpleGameHUD created for local player {ClassType}");
 		}
 		
 		protected override void OnStart()
@@ -98,8 +77,11 @@ namespace Reclaimer
 			
 			Log.Info($"Abby's weapons initialized: Cork Revolver and Milk Spray");
 			
-			// Note: Using enhanced SimpleGameHUD instead of separate AbbyHUD
-			Log.Info("Abby will use enhanced SimpleGameHUD showing cork ammo and milk status");
+			// Create HUD for local player (non-proxy)
+			if (!IsProxy)
+			{
+				CreateAbbyHUD();
+			}
 		}
 		
 		public override void UseAbility1()
@@ -363,40 +345,22 @@ namespace Reclaimer
 		protected override float GetAbility2Cooldown() => 0.5f;
 		protected override float GetUltimateCooldown() => 120f;
 		
-		void CreateHUD()
+		void CreateAbbyHUD()
 		{
-			// Only create HUD for the local player
-			if (!IsProxy && IsValid)
-			{
-				Log.Info("Starting Abby HUD creation...");
-				
-				// Remove any existing SimpleGameHUD that might conflict
-				var existingHUD = GameObject.Components.Get<SimpleGameHUD>();
-				if (existingHUD != null)
-				{
-					existingHUD.Destroy();
-					Log.Info("Removed existing SimpleGameHUD");
-				}
-				
-				// Also check for any existing AbbyHUD to prevent duplicates
-				if (hudObject != null && hudObject.IsValid)
-				{
-					hudObject.Destroy();
-					Log.Info("Removed existing AbbyHUD");
-				}
-				
-				hudObject = Scene.CreateObject();
-				hudObject.Name = "AbbyHUD";
-				var screenPanel = hudObject.Components.GetOrCreate<ScreenPanel>();
-				var hudComponent = hudObject.Components.GetOrCreate<AbbyHUD>();
-				hudComponent.Initialize(this);
-				
-				Log.Info("Abby HUD created successfully!");
-			}
-			else
-			{
-				Log.Info($"Skipping HUD creation - IsProxy: {IsProxy}, IsValid: {IsValid}");
-			}
+			Log.Info("Creating extensible SimpleGameHUD for Abby...");
+			
+			// Create HUD GameObject
+			hudObject = Scene.CreateObject();
+			hudObject.Name = "SimpleGameHUD_Abby";
+			
+			// Add ScreenPanel for UI rendering
+			var screenPanel = hudObject.Components.GetOrCreate<ScreenPanel>();
+			
+			// Add the extensible SimpleGameHUD Razor component
+			// This will automatically show Abby-specific icons, ammo, and status
+			var hudComponent = hudObject.Components.GetOrCreate<SimpleGameHUD>();
+			
+			Log.Info("Extensible HUD created - will show Cork Revolver ammo, milk status, and class-specific icons!");
 		}
 		
 		protected override void OnDestroy()

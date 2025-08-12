@@ -27,8 +27,11 @@ namespace Reclaimer
 		[Property, Group("Cork Gun Stats")]
 		public float ProjectileSpeed { get; set; } = 800f;
 		
-		[Property, Group("Cork Spawn")]
-		public Vector3 SpawnOffset { get; set; } = new Vector3(50f, 0f, 10f); // Forward, Right, Up
+		[Property] public float SpawnForward { get; set; } = 30f; // How far forward from player
+		[Property] public float SpawnRight { get; set; } = 5f; // How far right from player (negative = left)
+		[Property] public float SpawnUp { get; set; } = 10f; // How far up from player
+		[Property] public float FireAnglePitch { get; set; } = 0f; // Up/Down angle in degrees (-45 = down, 0 = straight, 45 = up)
+		[Property] public float FireAngleYaw { get; set; } = 0f; // Left/Right angle in degrees (-45 = left, 0 = center, 45 = right)
 		
 		[Property, Group("Active Reload")]
 		public float PerfectReloadMultiplier { get; set; } = 0.5f; // 50% faster
@@ -165,15 +168,16 @@ namespace Reclaimer
 				return;
 			}
 			
-			// Use configurable spawn offset
-			var forward = owner.WorldRotation.Forward;
-			var right = owner.WorldRotation.Right;
-			var up = owner.WorldRotation.Up;
+			// Simple spawn position calculation with debug logging
+			var lookDir = owner.EyeAngles.ToRotation();
+			var basePos = owner.WorldPosition;
+			var forwardOffset = lookDir.Forward * SpawnForward;
+			var rightOffset = lookDir.Right * SpawnRight;
+			var upOffset = Vector3.Up * SpawnUp;
 			
-			var pos = WorldPosition + 
-				forward * SpawnOffset.x + 
-				right * SpawnOffset.y + 
-				up * SpawnOffset.z;
+			var pos = basePos + forwardOffset + rightOffset + upOffset;
+			
+			Log.Info($"Cork spawn: Base={basePos}, Forward={SpawnForward}, Right={SpawnRight}, Up={SpawnUp}, Final={pos}");
 			
 			// Clone prefab with position (like Gun.cs)
 			var cork = CorkProjectilePrefab.Clone(pos);
@@ -185,21 +189,37 @@ namespace Reclaimer
 			
 			cork.Enabled = true; // Like Gun.cs does
 			
-			// Set up the cork projectile
+			// Simple firing direction with debug logging
+			var baseFiringDirection = lookDir.Forward;
+			
+			// Apply angles step by step
+			var modifiedDirection = baseFiringDirection;
+			
+			if (FireAnglePitch != 0f)
+			{
+				var pitchRotation = Rotation.FromPitch(FireAnglePitch);
+				modifiedDirection = pitchRotation * modifiedDirection;
+			}
+			
+			if (FireAngleYaw != 0f)
+			{
+				var yawRotation = Rotation.FromYaw(FireAngleYaw);
+				modifiedDirection = yawRotation * modifiedDirection;
+			}
+			
+			var firingDirection = modifiedDirection;
+			
+			Log.Info($"Cork firing: Base={baseFiringDirection}, Pitch={FireAnglePitch}, Yaw={FireAngleYaw}, Final={firingDirection}");
+			
+			// Set up the cork projectile (this sets the velocity internally)
 			var corkComponent = cork.Components.Get<CorkProjectile>();
 			if (corkComponent != null)
 			{
-				var fireDirection = Scene.Camera.WorldRotation.Forward;
-				corkComponent.Initialize(damage, MilkPerHit, owner, fireDirection * ProjectileSpeed);
+				corkComponent.Initialize(damage, MilkPerHit, owner, firingDirection * ProjectileSpeed);
 			}
 			
-			// Set physics velocity (like Gun.cs)
-			var rigidbody = cork.Components.Get<Rigidbody>();
-			if (rigidbody != null)
-			{
-				var fireDirection = Scene.Camera.WorldRotation.Forward;
-				rigidbody.Velocity = fireDirection * ProjectileSpeed;
-			}
+			// Don't set velocity here - Initialize already does it
+			Log.Info($"Cork velocity set to: {firingDirection * ProjectileSpeed}");
 			
 			cork.NetworkSpawn(); // Network spawn last (like Gun.cs)
 			

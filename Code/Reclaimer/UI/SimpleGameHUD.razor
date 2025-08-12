@@ -6,6 +6,7 @@
 <root>
     <div class="simple-hud">
         
+        @* Class-specific status extension *@
         @if (GetClassStatus() != "")
         {
             <div class="class-status @GetClassType().ToLower()">
@@ -13,36 +14,38 @@
             </div>
         }
         
+        @* Base abilities - always shown *@
         <div class="abilities">
             <div class="ability @GetAbilityClass("ability1")">
-                <div class="key">LMB</div>
+                <div class="key">@GetAbility1Key()</div>
                 <div class="cooldown">@GetAbility1Cooldown()</div>
             </div>
             
             <div class="ability @GetAbilityClass("ability2")">
-                <div class="key">RMB</div>
+                <div class="key">@GetAbility2Key()</div>
                 <div class="cooldown">@GetAbility2Cooldown()</div>
             </div>
             
             <div class="ability @GetAbilityClass("ultimate")">
-                <div class="key">MMB</div>
+                <div class="key">@GetUltimateKey()</div>
                 <div class="cooldown">@GetUltimateCooldown()</div>
             </div>
         </div>
         
+        @* Base vitals - always shown *@
         <div class="vitals">
             <div class="health">
-                <div class="icon">favorite</div>
+                <div class="icon">@GetHealthIcon()</div>
                 <div class="value">@GetHealth()</div>
             </div>
             
             <div class="mana">
-                <div class="icon">bolt</div>
+                <div class="icon">@GetManaIcon()</div>
                 <div class="value">@GetMana()</div>
             </div>
             
             <div class="resource">
-                <div class="icon">star</div>
+                <div class="icon">@GetResourceIcon()</div>
                 <div class="value">@GetResource()</div>
             </div>
         </div>
@@ -54,7 +57,7 @@
     
     protected override void OnStart()
     {
-        // UI component started
+        Log.Info($"SimpleGameHUD created for class: {GetClassType()}");
     }
     
     protected override void OnUpdate()
@@ -99,6 +102,80 @@
         return player?.ClassType.ToString() ?? "None";
     }
     
+    // Class-extensible ability key display
+    string GetAbility1Key()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "🔫", // Cork Revolver icon
+            LeoTank => "⚔️", // Sword attack icon
+            // TrunkWarrior => "🐘", // Trunk attack icon
+            _ => "LMB"
+        };
+    }
+    
+    string GetAbility2Key()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "🥛", // Milk spray icon
+            LeoTank => "🛡️", // Shell defense icon
+            // TrunkWarrior => "💪", // Trunk grab icon
+            _ => "RMB"
+        };
+    }
+    
+    string GetUltimateKey()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "😭", // Divine spill icon
+            LeoTank => "👶", // Lil Frank icon
+            // TrunkWarrior => "🌟", // Transcendent trunk icon
+            _ => "MMB"
+        };
+    }
+    
+    // Class-extensible icon display
+    string GetHealthIcon()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "❤️", // Heart for healer
+            LeoTank => "🛡️", // Shield for tank
+            // TrunkWarrior => "💪", // Muscle for DPS
+            _ => "favorite"
+        };
+    }
+    
+    string GetManaIcon()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "💧", // Water drop for healing mana
+            LeoTank => "⚡", // Lightning for tank abilities
+            // TrunkWarrior => "🔥", // Fire for DPS rage
+            _ => "bolt"
+        };
+    }
+    
+    string GetResourceIcon()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "🥛", // Milk icon
+            LeoTank => "🔥", // Rage icon
+            // TrunkWarrior => "📏", // Trunk length icon
+            _ => "star"
+        };
+    }
+    
     string GetAbility1Cooldown()
     {
         var player = GetPlayer();
@@ -136,6 +213,7 @@
         return onCooldown ? "on-cooldown" : "ready";
     }
     
+    // CLASS-SPECIFIC STATUS EXTENSIONS - Easy to modify per class
     string GetClassStatus()
     {
         var player = GetPlayer();
@@ -146,7 +224,7 @@
             LeoTank leo => GetLeoStatus(leo),
             AbbyHealer abby => GetAbbyStatus(abby),
             // TrunkWarrior trunk => GetTrunkStatus(trunk),
-            _ => $"DEBUG: Unknown player type {player.GetType().Name}"
+            _ => ""
         };
     }
     
@@ -161,7 +239,7 @@
             status.Add("⚔️ BATTLE");
             
         if (leo.InShell) status.Add("🐢 SHELL MODE");
-        if (!leo.HasSword) status.Add("NO SWORD");
+        if (!leo.HasSword) status.Add("❌ NO SWORD");
         if (leo.LilFrankActive) status.Add("👶 LIL FRANK");
         
         var parryTime = leo.GetParryWindowRemaining();
@@ -174,29 +252,46 @@
     {
         var status = new List<string>();
         
-        // Show cork ammo
+        // Show cork ammo - this is what was missing!
         var corkRevolver = abby.Components.GetInDescendants<CorkRevolver>();
         if (corkRevolver != null)
         {
-            status.Add($"🔫 {corkRevolver.CurrentAmmo}/{corkRevolver.MaxAmmo} CORKS");
+            string reloadStatus = corkRevolver.IsReloading ? " [RELOADING]" : "";
+            status.Add($"🔫 {corkRevolver.CurrentAmmo}/{corkRevolver.MaxAmmo} CORKS{reloadStatus}");
+        }
+        else
+        {
+            status.Add("🔫 NO CORK REVOLVER");
         }
         
-        // Show milk level
-        status.Add($"🥛 {abby.CurrentMilk:F0}/{abby.MaxMilk:F0} MILK");
+        // Show milk level with color coding
+        var milkPercentage = abby.MaxMilk > 0 ? abby.CurrentMilk / abby.MaxMilk : 0;
+        string milkColor = milkPercentage > 0.7f ? "🟢" : milkPercentage > 0.3f ? "🟡" : "🔴";
+        status.Add($"{milkColor} {abby.CurrentMilk:F0}/{abby.MaxMilk:F0} MILK");
         
         // Show special states
         if (abby.IsCrying) status.Add("😭 CRYING");
         if (abby.IsInvincible) status.Add("✨ INVINCIBLE");
-        if (abby.PremiumMilkActive) status.Add("⭐ PREMIUM MILK");
+        if (abby.PremiumMilkActive) status.Add("⭐ PREMIUM");
         
         // Show milk spoilage timer
-        if (abby.CurrentMilk > 0 && !abby.PremiumMilkActive)
+        if (abby.CurrentMilk > 0 && !abby.PremiumMilkActive && abby.MilkSpoilageTimer > 0)
         {
-            status.Add($"⏰ {abby.MilkSpoilageTimer:F0}s");
+            string timerColor = abby.MilkSpoilageTimer < 10 ? "🔴" : abby.MilkSpoilageTimer < 20 ? "🟡" : "🟢";
+            status.Add($"{timerColor} {abby.MilkSpoilageTimer:F0}s");
         }
         
         return string.Join(" • ", status);
     }
+    
+    // Easy to add new classes:
+    // string GetTrunkStatus(TrunkWarrior trunk)
+    // {
+    //     var status = new List<string>();
+    //     status.Add($"📏 TRUNK LV.{trunk.TrunkLevel} ({trunk.GetTrunkLength()}cm)");
+    //     if (trunk.IsGrabbing) status.Add("🤏 GRABBING");
+    //     return string.Join(" • ", status);
+    // }
     
     protected override int BuildHash()
     {
@@ -229,9 +324,16 @@
                 abby.IsCrying, 
                 abby.IsInvincible,
                 abby.PremiumMilkActive,
-                corkRevolver?.CurrentAmmo ?? 0
+                corkRevolver?.CurrentAmmo ?? 0,
+                corkRevolver?.IsReloading ?? false
             );
         }
+        
+        // Add TrunkWarrior-specific hash components
+        // if (player is TrunkWarrior trunk)
+        // {
+        //     hash = HashCode.Combine(hash, trunk.TrunkLevel, trunk.IsGrabbing);
+        // }
         
         return hash;
     }

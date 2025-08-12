@@ -66,10 +66,10 @@ namespace Reclaimer
 			
 			var hitGameObject = collision.Other.GameObject;
 			
-			// Ignore collision with the shooter
-			if (hitGameObject == shooterGameObject)
+			// Ignore collision with the shooter or any of its children/parents
+			if (IsShooterOrRelated(hitGameObject))
 			{
-				Log.Info("Cork ignoring collision with shooter");
+				Log.Info($"Cork ignoring collision with shooter-related object: {hitGameObject.Name}");
 				return;
 			}
 			
@@ -122,6 +122,38 @@ namespace Reclaimer
 			// Self-destruct impact after short time (using timer approach)
 			var timer = impact.Components.GetOrCreate<TimedDestroy>();
 			timer.DestroyAfter(2f);
+		}
+		
+		bool IsShooterOrRelated(GameObject hitObject)
+		{
+			if (shooterGameObject == null || hitObject == null) return false;
+			
+			// Direct match
+			if (hitObject == shooterGameObject) return true;
+			
+			// Check if hit object is a child of shooter
+			var parent = hitObject.Parent;
+			while (parent != null)
+			{
+				if (parent == shooterGameObject) return true;
+				parent = parent.Parent;
+			}
+			
+			// Check if hit object is a parent of shooter
+			parent = shooterGameObject.Parent;
+			while (parent != null)
+			{
+				if (parent == hitObject) return true;
+				parent = parent.Parent;
+			}
+			
+			// Check by name patterns (Physics Push is likely part of player)
+			if (hitObject.Name.Contains("Physics") && shooterGameObject.Name.Contains("Healer"))
+			{
+				return true;
+			}
+			
+			return false;
 		}
 		
 		void DestroyCork()
