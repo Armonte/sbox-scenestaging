@@ -40,8 +40,8 @@ namespace Reclaimer
 			ClassType = TrinityClassType.Healer;
 			MaxResource = MaxMilk; // Sync resource with milk property
 			
-			// Initialize runtime state
-			CurrentMilk = 0f;
+			// Initialize runtime state - START WITH FULL MILK FOR TESTING
+			CurrentMilk = MaxMilk; // Start with full milk instead of 0
 			MilkSpoilageTimer = MilkSpoilTime;
 			
 			// ALL other properties set via prefab editor
@@ -57,22 +57,26 @@ namespace Reclaimer
 			corkRevolver = Components.GetInDescendants<CorkRevolver>();
 			milkSpray = Components.GetInDescendants<MilkSpray>();
 			
+			Log.Info($"=== AbbyHealer Component Hierarchy Debug ===");
+			Log.Info($"AbbyHealer GameObject: {GameObject.Name}");
+			Log.Info($"AbbyHealer Components: {string.Join(", ", Components.GetAll().Select(c => c.GetType().Name))}");
+			
 			if (corkRevolver == null)
 			{
-				Log.Warning("No CorkRevolver found in AbbyHealer hierarchy!");
+				Log.Warning("❌ No CorkRevolver found in AbbyHealer hierarchy!");
 			}
 			else
 			{
-				Log.Info($"Found CorkRevolver: {corkRevolver.GameObject.Name}");
+				Log.Info($"✅ Found CorkRevolver: {corkRevolver.GameObject.Name}");
 			}
 			
 			if (milkSpray == null)  
 			{
-				Log.Warning("No MilkSpray found in AbbyHealer hierarchy!");
+				Log.Warning("❌ No MilkSpray found in AbbyHealer hierarchy!");
 			}
 			else
 			{
-				Log.Info($"Found MilkSpray: {milkSpray.GameObject.Name}");
+				Log.Info($"✅ Found MilkSpray: {milkSpray.GameObject.Name}");
 			}
 			
 			Log.Info($"Abby's weapons initialized: Cork Revolver and Milk Spray");
@@ -86,9 +90,8 @@ namespace Reclaimer
 		
 		public override void UseAbility1()
 		{
-			// Ability1 is now handled by Cork Revolver component
-			// This method kept for compatibility with TrinityPlayer base class
-			Log.Info("UseAbility1 called - Cork Revolver handles Attack1 input directly");
+			// Ability1 = Milk Portal (Key 1)
+			PlaceMilkPortalRPC();
 		}
 		
 		public override void UseAbility2()
@@ -166,10 +169,8 @@ namespace Reclaimer
 		
 		protected override void HandleClassSpecificInput()
 		{
-			if (Input.Pressed("SecondaryAction"))
-			{
-				PlaceMilkPortalRPC();
-			}
+			// All abilities now handled through UseAbility1/2/3 methods via standardized input system
+			// This method can be used for additional class-specific inputs if needed
 		}
 		
 		void RegenerateMana()
@@ -292,20 +293,30 @@ namespace Reclaimer
 				var portalComponent = portal.Components.GetOrCreate<MilkPortal>();
 				portalComponent.Owner = this;
 				
-				if (lastPortal != null && lastPortal.IsValid())
+				if (MilkPortalCount == 1)
 				{
-					var lastPortalComponent = lastPortal.Components.Get<MilkPortal>();
-					if (lastPortalComponent != null)
+					// First cast: Place exit portal (Portal A)
+					portalComponent.IsEntryPortal = false;
+					lastPortal = portal;
+					Log.Info("Exit portal (Portal A) placed!");
+				}
+				else if (MilkPortalCount == 2)
+				{
+					// Second cast: Place entry portal (Portal B) and link to exit portal
+					portalComponent.IsEntryPortal = true;
+					
+					if (lastPortal != null && lastPortal.IsValid())
 					{
-						portalComponent.LinkedPortal = lastPortalComponent;
-						lastPortalComponent.LinkedPortal = portalComponent;
+						var exitPortalComponent = lastPortal.Components.Get<MilkPortal>();
+						if (exitPortalComponent != null)
+						{
+							portalComponent.LinkedPortal = exitPortalComponent;
+							exitPortalComponent.LinkedPortal = portalComponent;
+							Log.Info("Entry portal (Portal B) placed and linked! Walk on Portal B to teleport to Portal A.");
+						}
 					}
 				}
-				
-				lastPortal = portal;
 			}
-			
-			Log.Info($"Milk portal placed! ({MilkPortalCount}/2)");
 		}
 		
 		public override void TakeDamage(float damage, TrinityPlayer attacker = null)
@@ -376,16 +387,16 @@ namespace Reclaimer
 	
 	public class MilkPortal : Component
 	{
-		[Property] public float TeleportCooldown { get; set; } = 3f;
 		[Property] public float Lifetime { get; set; } = 60f;
+		[Property] public float TeleportRadius { get; set; } = 50f;
 		
 		public AbbyHealer Owner { get; set; }
 		public MilkPortal LinkedPortal { get; set; }
 		
 		[Sync] public bool IsActive { get; set; } = true;
+		[Sync] public bool IsEntryPortal { get; set; } = false; // true = teleports TO linked portal
 		
 		private float lifetimeTimer;
-		private float cooldownTimer;
 		
 		protected override void OnStart()
 		{
@@ -404,12 +415,8 @@ namespace Reclaimer
 				return;
 			}
 			
-			if (cooldownTimer > 0)
-			{
-				cooldownTimer -= Time.Delta;
-			}
-			
-			if (IsActive && LinkedPortal != null && cooldownTimer <= 0)
+			// Only entry portals check for teleportation
+			if (IsActive && IsEntryPortal && LinkedPortal != null && LinkedPortal.IsValid())
 			{
 				CheckForTeleport();
 			}
@@ -419,12 +426,11 @@ namespace Reclaimer
 		{
 			var players = Scene.GetAllComponents<TrinityPlayer>()
 				.Where(p => p.IsAlive)
-				.Where(p => Vector3.DistanceBetween(WorldPosition, p.WorldPosition) < 50f);
+				.Where(p => Vector3.DistanceBetween(WorldPosition, p.WorldPosition) < TeleportRadius);
 			
 			foreach (var player in players)
 			{
 				TeleportPlayerRPC(player.GameObject.Id);
-				cooldownTimer = TeleportCooldown;
 			}
 		}
 		

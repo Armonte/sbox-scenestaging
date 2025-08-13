@@ -27,11 +27,10 @@ namespace Reclaimer
 		[Property, Group("Cork Gun Stats")]
 		public float ProjectileSpeed { get; set; } = 800f;
 		
-		[Property] public float SpawnForward { get; set; } = 30f; // How far forward from player
-		[Property] public float SpawnRight { get; set; } = 5f; // How far right from player (negative = left)
-		[Property] public float SpawnUp { get; set; } = 10f; // How far up from player
-		[Property] public float FireAnglePitch { get; set; } = 0f; // Up/Down angle in degrees (-45 = down, 0 = straight, 45 = up)
-		[Property] public float FireAngleYaw { get; set; } = 0f; // Left/Right angle in degrees (-45 = left, 0 = center, 45 = right)
+		[Property] public float SpawnForward { get; set; } = 50f; // How far forward from player
+		[Property] public float SpawnRight { get; set; } = 0f; // How far right from player (negative = left)  
+		[Property] public float SpawnUp { get; set; } = 40f; // How far up from player
+		[Property] public float UpwardForce { get; set; } = 200f; // Upward velocity component (like Gun.cs)
 		
 		[Property, Group("Active Reload")]
 		public float PerfectReloadMultiplier { get; set; } = 0.5f; // 50% faster
@@ -56,6 +55,15 @@ namespace Reclaimer
 			
 			// Get the AbbyHealer owner - try different methods
 			owner = Components.GetInAncestors<AbbyHealer>();
+			
+			if (owner == null)
+			{
+				Log.Warning("CorkRevolver: No AbbyHealer found in ancestors!");
+			}
+			else
+			{
+				Log.Info("CorkRevolver: Successfully found AbbyHealer owner!");
+			}
 			
 			// If not found in ancestors, try scene search as fallback
 			if (owner == null)
@@ -108,9 +116,19 @@ namespace Reclaimer
 			}
 			
 			// Handle firing
-			if (Input.Pressed("Attack1") && CanFire())
+			if (Input.Pressed("attack1"))
 			{
-				FireCork();
+				Log.Info("CorkRevolver: attack1 input detected!");
+				if (CanFire())
+				{
+					Log.Info("CorkRevolver: Can fire, firing cork!");
+					FireCork();
+				}
+				else
+				{
+					Log.Info("CorkRevolver: Cannot fire - checking conditions...");
+					Log.Info($"CurrentAmmo: {CurrentAmmo}, IsReloading: {IsReloading}, timeSinceLastShot: {timeSinceLastShot}, FireDelay: {FireDelay}");
+				}
 			}
 		}
 		
@@ -168,18 +186,13 @@ namespace Reclaimer
 				return;
 			}
 			
-			// Simple spawn position calculation with debug logging
+			// SIMPLIFIED: Use Gun.cs approach that actually works
 			var lookDir = owner.EyeAngles.ToRotation();
-			var basePos = owner.WorldPosition;
-			var forwardOffset = lookDir.Forward * SpawnForward;
-			var rightOffset = lookDir.Right * SpawnRight;
-			var upOffset = Vector3.Up * SpawnUp;
 			
-			var pos = basePos + forwardOffset + rightOffset + upOffset;
+			// Simple spawn position (matching Gun.cs pattern)
+			var pos = owner.WorldPosition + Vector3.Up * SpawnUp + lookDir.Forward.WithZ(0.0f) * SpawnForward;
 			
-			Log.Info($"Cork spawn: Base={basePos}, Forward={SpawnForward}, Right={SpawnRight}, Up={SpawnUp}, Final={pos}");
-			
-			// Clone prefab with position (like Gun.cs)
+			// Clone prefab
 			var cork = CorkProjectilePrefab.Clone(pos);
 			if (cork == null)
 			{
@@ -187,39 +200,19 @@ namespace Reclaimer
 				return;
 			}
 			
-			cork.Enabled = true; // Like Gun.cs does
+			cork.Enabled = true;
 			
-			// Simple firing direction with debug logging
-			var baseFiringDirection = lookDir.Forward;
+			// SIMPLIFIED: Direct velocity like Gun.cs (no complex angles)
+			var velocity = lookDir.Forward * ProjectileSpeed + Vector3.Up * UpwardForce;
 			
-			// Apply angles step by step
-			var modifiedDirection = baseFiringDirection;
-			
-			if (FireAnglePitch != 0f)
-			{
-				var pitchRotation = Rotation.FromPitch(FireAnglePitch);
-				modifiedDirection = pitchRotation * modifiedDirection;
-			}
-			
-			if (FireAngleYaw != 0f)
-			{
-				var yawRotation = Rotation.FromYaw(FireAngleYaw);
-				modifiedDirection = yawRotation * modifiedDirection;
-			}
-			
-			var firingDirection = modifiedDirection;
-			
-			Log.Info($"Cork firing: Base={baseFiringDirection}, Pitch={FireAnglePitch}, Yaw={FireAngleYaw}, Final={firingDirection}");
-			
-			// Set up the cork projectile (this sets the velocity internally)
+			// Set up the cork projectile
 			var corkComponent = cork.Components.Get<CorkProjectile>();
 			if (corkComponent != null)
 			{
-				corkComponent.Initialize(damage, MilkPerHit, owner, firingDirection * ProjectileSpeed);
+				corkComponent.Initialize(damage, MilkPerHit, owner, velocity);
 			}
 			
-			// Don't set velocity here - Initialize already does it
-			Log.Info($"Cork velocity set to: {firingDirection * ProjectileSpeed}");
+			Log.Info($"Cork fired: pos={pos}, velocity={velocity}");
 			
 			cork.NetworkSpawn(); // Network spawn last (like Gun.cs)
 			

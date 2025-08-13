@@ -144,21 +144,26 @@ namespace Reclaimer
 			if (GlobalCooldown > 0) return;
 			if (IsCasting) return;
 			
-			if (Input.Pressed("Attack1") && Ability1Cooldown <= 0)
+			// Standard Input System:
+			// LMB (attack1) = Primary Fire - handled by weapon components
+			// RMB (attack2) = Alternate Fire - handled by weapon components
+			// Key 1-4 = Abilities 1-4
+			
+			if (Input.Pressed("Slot1") && Ability1Cooldown <= 0)
 			{
 				UseAbility1();
 				Ability1Cooldown = GetAbility1Cooldown();
 				GlobalCooldown = GlobalCooldownTime;
 			}
 			
-			if (Input.Pressed("Attack2") && Ability2Cooldown <= 0)
+			if (Input.Pressed("Slot2") && Ability2Cooldown <= 0)
 			{
 				UseAbility2();
 				Ability2Cooldown = GetAbility2Cooldown();
 				GlobalCooldown = GlobalCooldownTime;
 			}
 			
-			if (Input.Pressed("Ultimate") && UltimateCooldown <= 0)
+			if (Input.Pressed("Slot3") && UltimateCooldown <= 0)
 			{
 				UseUltimate();
 				UltimateCooldown = GetUltimateCooldown();

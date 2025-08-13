@@ -14,7 +14,20 @@
             </div>
         }
         
-        @* Base abilities - always shown *@
+        @* Weapons - Primary/Alternate Fire *@
+        <div class="weapons">
+            <div class="weapon primary">
+                <div class="key">@GetPrimaryFireIcon()</div>
+                <div class="label">LMB</div>
+            </div>
+            
+            <div class="weapon alternate">
+                <div class="key">@GetAlternateFireIcon()</div>
+                <div class="label">RMB</div>
+            </div>
+        </div>
+        
+        @* Abilities - Key 1, 2, 3 *@
         <div class="abilities">
             <div class="ability @GetAbilityClass("ability1")">
                 <div class="key">@GetAbility1Key()</div>
@@ -102,16 +115,16 @@
         return player?.ClassType.ToString() ?? "None";
     }
     
-    // Class-extensible ability key display
+    // Class-extensible ability key display - FIXED for new input system
     string GetAbility1Key()
     {
         var player = GetPlayer();
         return player switch
         {
-            AbbyHealer => "🔫", // Cork Revolver icon
-            LeoTank => "⚔️", // Sword attack icon
-            // TrunkWarrior => "🐘", // Trunk attack icon
-            _ => "LMB"
+            AbbyHealer => "🌀", // Milk Portal icon (Key 1)
+            LeoTank => "⚔️", // Sword ability icon (Key 1)
+            // TrunkWarrior => "🐘", // Trunk ability icon (Key 1)
+            _ => "1"
         };
     }
     
@@ -120,10 +133,10 @@
         var player = GetPlayer();
         return player switch
         {
-            AbbyHealer => "🥛", // Milk spray icon
-            LeoTank => "🛡️", // Shell defense icon
-            // TrunkWarrior => "💪", // Trunk grab icon
-            _ => "RMB"
+            AbbyHealer => "2", // No ability 2 for Abby currently
+            LeoTank => "🛡️", // Shell ability icon (Key 2)
+            // TrunkWarrior => "💪", // Trunk ability icon (Key 2)
+            _ => "2"
         };
     }
     
@@ -135,7 +148,32 @@
             AbbyHealer => "😭", // Divine spill icon
             LeoTank => "👶", // Lil Frank icon
             // TrunkWarrior => "🌟", // Transcendent trunk icon
-            _ => "MMB"
+            _ => "3"
+        };
+    }
+    
+    // NEW: Primary/Alternate Fire weapon icons
+    string GetPrimaryFireIcon()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "🔫", // Cork Revolver
+            LeoTank => "⚔️", // Sword attack
+            // TrunkWarrior => "🐘", // Trunk attack
+            _ => "LMB"
+        };
+    }
+    
+    string GetAlternateFireIcon()
+    {
+        var player = GetPlayer();
+        return player switch
+        {
+            AbbyHealer => "🥛", // Milk Spray
+            LeoTank => "🛡️", // Shell mode
+            // TrunkWarrior => "💪", // Trunk grab
+            _ => "RMB"
         };
     }
     

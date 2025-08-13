@@ -25,11 +25,39 @@ namespace Reclaimer
 		protected override void OnStart()
 		{
 			base.OnStart();
-			owner = Components.Get<AbbyHealer>();
 			
+			// Try multiple ways to find the AbbyHealer owner
+			owner = Components.Get<AbbyHealer>();
 			if (owner == null)
 			{
-				Log.Warning("MilkSpray: No AbbyHealer component found!");
+				owner = Components.GetInAncestors<AbbyHealer>();
+			}
+			if (owner == null)
+			{
+				owner = Components.GetInDescendants<AbbyHealer>();
+			}
+			if (owner == null)
+			{
+				// Last resort: find in scene
+				owner = Scene.GetAllComponents<AbbyHealer>()?.FirstOrDefault(a => !a.IsProxy);
+			}
+			
+			Log.Info($"=== MILK SPRAY OWNER DETECTION ===");
+			Log.Info($"MilkSpray GameObject: {GameObject.Name}");
+			Log.Info($"Found AbbyHealer owner: {owner != null}");
+			Log.Info($"=== MILK SPRAY PROPERTIES ===");
+			Log.Info($"MaxRange: {MaxRange}, ConeAngle: {ConeAngle}, MaxHealPerSecond: {MaxHealPerSecond}");
+			Log.Info($"MilkUsagePerSecond: {MilkUsagePerSecond}");
+			
+			if (owner != null)
+			{
+				Log.Info($"Owner GameObject: {owner.GameObject.Name}");
+				Log.Info($"Owner CurrentMilk: {owner.CurrentMilk}");
+				Log.Info($"Owner IsAlive: {owner.IsAlive}");
+			}
+			else
+			{
+				Log.Error("❌ CRITICAL: MilkSpray cannot find AbbyHealer owner!");
 			}
 		}
 		
@@ -37,24 +65,23 @@ namespace Reclaimer
 		{
 			if (IsProxy) return; // Only handle input on authoritative client
 			
-			// Check for Attack2 input (milk spray)
-			if (Input.Down("Attack2"))
+			bool isHoldingRMB = Input.Down("attack2");
+			
+			if (isHoldingRMB && !isSpraying && CanStartSpray())
 			{
-				if (CanStartSpray())
-				{
-					if (!isSpraying)
-					{
-						StartSprayRPC();
-					}
-					PerformHealSprayRPC();
-				}
-				else if (isSpraying)
-				{
-					StopSprayRPC();
-				}
+				// Start spraying
+				Log.Info("🔵 STARTING milk spray");
+				StartSprayRPC();
 			}
-			else if (isSpraying)
+			else if (isHoldingRMB && isSpraying)
 			{
+				// Continue spraying
+				PerformHealSprayRPC();
+			}
+			else if (!isHoldingRMB && isSpraying)
+			{
+				// Stop spraying
+				Log.Info("🔴 STOPPING milk spray");
 				StopSprayRPC();
 			}
 		}
@@ -73,6 +100,10 @@ namespace Reclaimer
 			
 			isSpraying = true;
 			
+			Log.Info("=== MILK SPRAY START DEBUG ===");
+			Log.Info($"SprayEffectPrefab assigned: {SprayEffectPrefab != null}");
+			Log.Info($"SpraySound assigned: {SpraySound != null}");
+			
 			// Create spray visual effect
 			CreateSprayEffect();
 			
@@ -80,6 +111,11 @@ namespace Reclaimer
 			if (SpraySound != null)
 			{
 				Sound.Play(SpraySound, WorldPosition);
+				Log.Info("Playing milk spray sound");
+			}
+			else
+			{
+				Log.Warning("No SpraySound assigned!");
 			}
 			
 			Log.Info("Abby starts milk spray healing!");
@@ -92,8 +128,24 @@ namespace Reclaimer
 			
 			isSpraying = false;
 			
-			// Remove spray effect
-			DestroySprayEffect();
+			// Stop emission immediately but let existing particles continue
+			if (activeSprayEffect != null && activeSprayEffect.IsValid())
+			{
+				// Find and disable emitter components to stop new particles
+				var emitters = activeSprayEffect.Components.GetAll<Component>()
+					.Where(c => c.GetType().Name.Contains("Emit") || c.GetType().Name.Contains("Spawn"));
+				
+				foreach (var emitter in emitters)
+				{
+					emitter.Enabled = false; // Stop emission
+				}
+				
+				// Delay destruction to let existing particles finish naturally
+				var timedDestroy = activeSprayEffect.Components.GetOrCreate<TimedDestroy>();
+				timedDestroy.DestroyAfter(3.0f);
+				
+				activeSprayEffect = null;
+			}
 			
 			Log.Info("Abby stops milk spray");
 		}
@@ -103,6 +155,9 @@ namespace Reclaimer
 		{
 			if (!Networking.IsHost) return;
 			if (owner == null) return;
+			
+			// Update spray effect position every frame to follow camera
+			UpdateSprayEffectPosition();
 			
 			// Calculate milk consumption this tick
 			float milkNeeded = MilkUsagePerSecond * Time.Delta;
@@ -166,7 +221,11 @@ namespace Reclaimer
 			
 			if (healsApplied > 0)
 			{
-				Log.Info($"Milk spray healed {healsApplied} entities");
+				Log.Info($"✅ Milk spray healed {healsApplied} entities");
+			}
+			else
+			{
+				Log.Info($"Milk spray found no targets to heal in range {MaxRange} with cone angle {ConeAngle}°");
 			}
 		}
 		
@@ -174,25 +233,109 @@ namespace Reclaimer
 		{
 			if (SprayEffectPrefab != null && SprayEffectPrefab.IsValid())
 			{
+				Log.Info("MilkSpray: Creating spray effect from prefab");
 				activeSprayEffect = SprayEffectPrefab.Clone();
-				activeSprayEffect.WorldPosition = GameObject.WorldPosition;
-				activeSprayEffect.WorldRotation = GameObject.WorldRotation;
 				
-				// Parent to this GameObject so it follows
-				activeSprayEffect.SetParent(GameObject, false);
+				// Position it at player with camera direction (same as fallback)
+				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+				if (camera != null && owner != null)
+				{
+					// Use PLAYER position but CAMERA direction
+					Vector3 sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
+					Vector3 sprayDirection = camera.WorldRotation.Forward; // Camera look direction
+					
+					activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f;
+					activeSprayEffect.WorldRotation = camera.WorldRotation;
+					
+					Log.Info($"Prefab positioned at player: {activeSprayEffect.WorldPosition}");
+				}
+				else
+				{
+					// Fallback - don't use GameObject position as it's wrong
+					activeSprayEffect.WorldPosition = owner?.WorldPosition ?? Vector3.Zero;
+					activeSprayEffect.WorldRotation = owner?.WorldRotation ?? Rotation.Identity;
+					Log.Warning("No camera found, using player position fallback");
+				}
+				
+				// Don't parent it - we'll update position manually
 			}
 			else
 			{
+				Log.Warning("MilkSpray: No SprayEffectPrefab assigned! Creating simple fallback effect");
 				// Create simple spray effect GameObject as fallback
 				activeSprayEffect = Scene.CreateObject();
-				activeSprayEffect.Name = "MilkSprayEffect";
-				activeSprayEffect.WorldPosition = GameObject.WorldPosition;
-				activeSprayEffect.WorldRotation = GameObject.WorldRotation;
-				activeSprayEffect.SetParent(GameObject, false);
+				activeSprayEffect.Name = "MilkSprayEffect_Fallback";
 				
-				// TODO: Add particle system or other visual effects
+				// Get camera for proper look direction
+				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+				
+				Vector3 sprayOrigin;
+				Vector3 sprayDirection;
+				
+				if (camera != null)
+				{
+					// Use PLAYER position but CAMERA direction (third person fix)
+					sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
+					sprayDirection = camera.WorldRotation.Forward; // Camera look direction
+					Log.Info($"Using player position with camera direction - Position: {sprayOrigin}, Forward: {sprayDirection}");
+				}
+				else
+				{
+					// Fallback to player position and direction
+					sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player eye height
+					sprayDirection = owner.WorldRotation.Forward;
+					Log.Info($"Using player - Position: {sprayOrigin}, Forward: {sprayDirection}");
+				}
+				
+				// Position effect close to camera, pointing AWAY from camera (like a spray)
+				activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f; // Much closer
+				
+				if (camera != null)
+				{
+					activeSprayEffect.WorldRotation = camera.WorldRotation; // Use camera's exact rotation
+				}
+				else
+				{
+					activeSprayEffect.WorldRotation = owner.WorldRotation; // Use player's rotation
+				}
+				
+				// Don't parent it, just position it in world space
+				// activeSprayEffect.SetParent(owner.GameObject, false);
+				
+				// Add a simple ModelRenderer as visual indicator
+				var renderer = activeSprayEffect.Components.GetOrCreate<ModelRenderer>();
+				renderer.Model = Model.Load("models/sphere_test.vmdl"); // Use existing sphere model
+				renderer.Tint = Color.Cyan; // Bright cyan for visibility
+				
+				// Scale it to be cone-like and more visible
+				activeSprayEffect.LocalScale = new Vector3(1.0f, 3.0f, 1.0f); // Bigger elongated shape
+				
+				Log.Info($"Spray positioned at: {activeSprayEffect.WorldPosition}, Player at: {owner.WorldPosition}");
+				
+				Log.Info("✅ Created bright cyan milk spray visual fallback - should be visible!");
 			}
 		}
+		
+		void UpdateSprayEffectPosition()
+		{
+			// Only update if we're actively spraying and have a valid effect
+			if (!isSpraying || activeSprayEffect == null || !activeSprayEffect.IsValid()) return;
+			
+			// Get camera for current look direction
+			var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+			
+			if (camera != null)
+			{
+				// Update position: PLAYER position + CAMERA direction (third person fix)
+				Vector3 sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
+				Vector3 sprayDirection = camera.WorldRotation.Forward; // Camera look direction
+				
+				activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f;
+				activeSprayEffect.WorldRotation = camera.WorldRotation; // Use camera's exact rotation
+			}
+		}
+		
+	
 		
 		void DestroySprayEffect()
 		{
