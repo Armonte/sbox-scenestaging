@@ -52,6 +52,11 @@ namespace Reclaimer
 		protected virtual void HandleClassSpecificUpdate() { }
 		protected virtual void HandleClassSpecificInput() { }
 		
+		// Virtual methods for recast ability system
+		protected virtual bool ShouldApplyAbility1Cooldown() => true; // Default: always apply cooldown
+		protected virtual bool ShouldApplyAbility2Cooldown() => true;
+		protected virtual bool ShouldApplyUltimateCooldown() => true;
+		
 		protected override void OnStart()
 		{
 			base.OnStart();
@@ -152,8 +157,12 @@ namespace Reclaimer
 			if (Input.Pressed("Slot1") && Ability1Cooldown <= 0)
 			{
 				UseAbility1();
-				Ability1Cooldown = GetAbility1Cooldown();
-				GlobalCooldown = GlobalCooldownTime;
+				// Only apply cooldown if the ability says to (handles recast abilities)
+				if (ShouldApplyAbility1Cooldown())
+				{
+					Ability1Cooldown = GetAbility1Cooldown();
+					GlobalCooldown = GlobalCooldownTime;
+				}
 			}
 			
 			if (Input.Pressed("Slot2") && Ability2Cooldown <= 0)

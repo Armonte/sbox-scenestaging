@@ -26,12 +26,15 @@ namespace Reclaimer
 		[Sync] public float MilkSpoilageTimer { get; set; }
 		[Sync] public bool IsCrying { get; set; }
 		[Sync] public bool IsInvincible { get; set; }
-		[Sync] public int MilkPortalCount { get; set; }
 		[Sync] public bool PremiumMilkActive { get; set; }
+		[Sync] public bool IsPortalRecasting { get; set; } // True when first portal placed, waiting for second
+		
+		private float portalRecastTimer = 0f;
+		private GameObject entryPortal; // Simple reference to first portal
+		private GameObject exitPortal;  // Simple reference to second portal
 		
 		private float cryingTimer;
 		private float invincibilityTimer;
-		private GameObject lastPortal;
 		private float milksongProcChance = 0.01f;
 		private float originalMovementSpeed;
 		
@@ -90,8 +93,25 @@ namespace Reclaimer
 		
 		public override void UseAbility1()
 		{
-			// Ability1 = Milk Portal (Key 1)
-			PlaceMilkPortalRPC();
+			// Ability1 = Milk Portal (Key 1) with simple recast logic
+			if (CurrentMana < 40) 
+			{
+				return;
+			}
+			
+			// Simple approach like Cork Gun: pass portal type as parameter
+			if (!IsPortalRecasting)
+			{
+				PlaceMilkPortalRPC(true); // true = entry portal
+				IsPortalRecasting = true;
+				portalRecastTimer = 3.0f;
+			}
+			else if (portalRecastTimer > 0)
+			{
+				PlaceMilkPortalRPC(false); // false = exit portal
+				IsPortalRecasting = false;
+				portalRecastTimer = 0f;
+			}
 		}
 		
 		public override void UseAbility2()
@@ -137,6 +157,18 @@ namespace Reclaimer
 		
 		protected override void HandleClassSpecificUpdate()
 		{
+			// Handle portal recast timer
+			if (IsPortalRecasting && portalRecastTimer > 0)
+			{
+				portalRecastTimer -= Time.Delta;
+				if (portalRecastTimer <= 0)
+				{
+					// Recast window expired, reset state
+					IsPortalRecasting = false;
+					Log.Info("Portal recast window expired");
+				}
+			}
+			
 			if (CurrentMilk > 0 && !PremiumMilkActive)
 			{
 				MilkSpoilageTimer -= Time.Delta;
@@ -275,73 +307,100 @@ namespace Reclaimer
 		}
 		
 		[Rpc.Broadcast]
-		void PlaceMilkPortalRPC()
+		void PlaceMilkPortalRPC(bool isEntryPortal)
 		{
-			if (!Networking.IsHost) return;
-			
-			Log.Info($"🌀 PlaceMilkPortalRPC called - CurrentMana: {CurrentMana}, MilkPortalCount: {MilkPortalCount}");
-			
-			if (CurrentMana < 40) 
+			// Host consumes mana (like Cork Gun consuming ammo)
+			if (Networking.IsHost)
 			{
-				Log.Warning("❌ Not enough mana for portal (need 40)");
-				return;
+				CurrentMana -= 40;
 			}
-			if (MilkPortalCount >= 2) 
+			
+			if (MilkPortalPrefab == null || !MilkPortalPrefab.IsValid())
 			{
-				Log.Warning("❌ Portal limit reached (2/2)");
+				Log.Error("MilkPortalPrefab is null or invalid!");
 				return;
 			}
 			
-			CurrentMana -= 40;
-			MilkPortalCount++;
+			// Calculate portal position (same as Cork Gun calculates projectile position)
+			var lookDir = EyeAngles.ToRotation();
+			var rayStart = WorldPosition + Vector3.Up * 64f;
+			var rayEnd = rayStart + lookDir.Forward * 1000f;
 			
-			Log.Info($"🌀 MilkPortalPrefab assigned: {MilkPortalPrefab != null}, Valid: {MilkPortalPrefab?.IsValid() ?? false}");
-			
-			if (MilkPortalPrefab != null && MilkPortalPrefab.IsValid())
+			// Simple raycast to ground
+			var trace = Scene.Trace.Ray(rayStart, rayEnd).Run();
+			Vector3 portalPosition;
+			if (trace.Hit)
 			{
-				var portal = MilkPortalPrefab.Clone();
-				
-				// Place portal where player is looking, not at feet
-				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
-				Vector3 lookDirection = camera?.WorldRotation.Forward ?? EyeAngles.ToRotation().Forward;
-				Vector3 portalPosition = WorldPosition + lookDirection * 200f; // 200 units forward
-				portalPosition.z = WorldPosition.z; // Keep at ground level
-				
-				portal.WorldPosition = portalPosition;
-				
-				Log.Info($"🌀 Portal created at position: {portalPosition}, GameObject: {portal.Name}");
-				
-				var portalComponent = portal.Components.GetOrCreate<MilkPortal>();
+				portalPosition = trace.HitPosition + Vector3.Up * 10f;
+			}
+			else
+			{
+				portalPosition = WorldPosition + lookDir.Forward * 200f;
+				portalPosition.z = WorldPosition.z;
+			}
+			
+			// Clone portal (exactly like Cork Gun clones projectile)
+			var portal = MilkPortalPrefab.Clone(portalPosition);
+			if (portal == null)
+			{
+				Log.Error("Failed to clone MilkPortalPrefab!");
+				return;
+			}
+			
+			portal.Enabled = true;
+			portal.Name = isEntryPortal ? "EntryPortal" : "ExitPortal";
+			
+			// Setup portal component (like Cork Gun sets up projectile)
+			var portalComponent = portal.Components.Get<MilkPortal>();
+			if (portalComponent == null)
+			{
+				Log.Warning("No MilkPortal component found on prefab, creating one...");
+				portalComponent = portal.Components.GetOrCreate<MilkPortal>();
+			}
+			
+			if (portalComponent != null)
+			{
 				portalComponent.Owner = this;
+				portalComponent.IsEntryPortal = isEntryPortal;
+				Log.Info($"Portal component setup complete: {(isEntryPortal ? "ENTRY" : "EXIT")}");
 				
-				if (MilkPortalCount == 1)
+				// Simple portal linking (like how Cork Gun tracks owner)
+				if (isEntryPortal)
 				{
-					// First cast: Place exit portal (Portal A)
-					portalComponent.IsEntryPortal = false;
-					lastPortal = portal;
-					Log.Info("✅ Exit portal (Portal A) placed!");
+					entryPortal = portal;
+					Log.Info("✅ Entry portal placed!");
 				}
-				else if (MilkPortalCount == 2)
+				else
 				{
-					// Second cast: Place entry portal (Portal B) and link to exit portal
-					portalComponent.IsEntryPortal = true;
-					
-					if (lastPortal != null && lastPortal.IsValid())
+					exitPortal = portal;
+					// Link to existing entry portal
+					if (entryPortal != null && entryPortal.IsValid())
 					{
-						var exitPortalComponent = lastPortal.Components.Get<MilkPortal>();
-						if (exitPortalComponent != null)
+						var entryComponent = entryPortal.Components.Get<MilkPortal>();
+						if (entryComponent != null)
 						{
-							portalComponent.LinkedPortal = exitPortalComponent;
-							exitPortalComponent.LinkedPortal = portalComponent;
-							Log.Info("✅ Entry portal (Portal B) placed and linked! Walk on Portal B to teleport to Portal A.");
+							entryComponent.LinkedPortal = portalComponent;
+							portalComponent.LinkedPortal = entryComponent;
+							Log.Info("✅ Exit portal placed and linked!");
 						}
+						else
+						{
+							Log.Warning("Entry portal has no MilkPortal component!");
+						}
+					}
+					else
+					{
+						Log.Warning("No valid entry portal found for linking!");
 					}
 				}
 			}
 			else
 			{
-				Log.Error("❌ MilkPortalPrefab is null or invalid! Check prefab assignment in inspector.");
+				Log.Error("Failed to create MilkPortal component!");
 			}
+			
+			// Network spawn last (exactly like Cork Gun)
+			portal.NetworkSpawn();
 		}
 		
 		public override void TakeDamage(float damage, TrinityPlayer attacker = null)
@@ -350,9 +409,17 @@ namespace Reclaimer
 			base.TakeDamage(damage, attacker);
 		}
 		
-		public void OnPortalDestroyed()
+		public void OnPortalDestroyed(GameObject destroyedPortal)
 		{
-			MilkPortalCount = Math.Max(0, MilkPortalCount - 1);
+			// Simple cleanup like Cork Gun
+			if (destroyedPortal == entryPortal)
+			{
+				entryPortal = null;
+			}
+			if (destroyedPortal == exitPortal)
+			{
+				exitPortal = null;
+			}
 		}
 		
 		public void ActivatePremiumMilk()
@@ -380,6 +447,14 @@ namespace Reclaimer
 		protected override float GetAbility1Cooldown() => 1.5f;
 		protected override float GetAbility2Cooldown() => 0.5f;
 		protected override float GetUltimateCooldown() => 120f;
+		
+		// Recast system: Only apply cooldown when portal sequence is complete
+		protected override bool ShouldApplyAbility1Cooldown()
+		{
+			// Don't apply cooldown if we're in recast mode (first portal placed, waiting for second)
+			// Only apply cooldown when both portals are placed or recast window expires
+			return !IsPortalRecasting;
+		}
 		
 		void CreateAbbyHUD()
 		{
@@ -444,11 +519,12 @@ namespace Reclaimer
 			if (teleportCooldown > 0)
 				teleportCooldown -= Time.Delta;
 			
-			// Use distance-based detection as fallback since trigger events aren't working
+			// Simple distance-based teleportation
 			if (IsActive && IsEntryPortal && LinkedPortal != null && LinkedPortal.IsValid() && teleportCooldown <= 0)
 			{
 				CheckForTeleportDistance();
 			}
+			// Portal is ready but not checking for teleportation (inactive, no link, etc.)
 		}
 		
 		void CheckForTeleportDistance()
@@ -459,7 +535,6 @@ namespace Reclaimer
 			
 			foreach (var player in players)
 			{
-				Log.Info($"🌀 Player {player.ClassType} is within portal range - teleporting!");
 				TeleportPlayerRPC(player.GameObject.Id);
 				teleportCooldown = 2.0f; // 2 second cooldown to prevent spam
 				break; // Only teleport one player at a time
@@ -469,30 +544,44 @@ namespace Reclaimer
 		[Rpc.Broadcast]
 		void TeleportPlayerRPC(Guid playerId)
 		{
-			if (LinkedPortal == null || !LinkedPortal.IsValid()) 
-			{
-				Log.Warning("🌀 TeleportPlayerRPC: No linked portal");
-				return;
-			}
+			if (LinkedPortal == null || !LinkedPortal.IsValid()) return;
 			
 			var player = Scene.Directory.FindByGuid(playerId)?.Components.Get<TrinityPlayer>();
 			if (player != null)
 			{
-				Vector3 teleportPos = LinkedPortal.WorldPosition + Vector3.Up * 50f;
+				// Simple teleportation to ground level at exit portal
+				Vector3 teleportPos = LinkedPortal.WorldPosition;
+				teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
+				
 				player.WorldPosition = teleportPos;
-				Log.Info($"🌀 {player.ClassType} teleported through milk portal from {player.WorldPosition} to {teleportPos}!");
+				Log.Info($"{player.ClassType} teleported through milk portal");
+				
+				// Destroy both portals (like Cork Gun destroys projectile on hit)
+				DestroyPortalPair();
 			}
-			else
+		}
+		
+		void DestroyPortalPair()
+		{
+			// Simple cleanup like Cork Gun
+			if (LinkedPortal != null && LinkedPortal.IsValid())
 			{
-				Log.Warning($"🌀 TeleportPlayerRPC: Could not find player with ID {playerId}");
+				LinkedPortal.GameObject.Destroy();
 			}
+			
+			if (Owner != null)
+			{
+				Owner.OnPortalDestroyed(GameObject);
+			}
+			
+			GameObject.Destroy();
 		}
 		
 		void DestroyPortal()
 		{
 			if (Owner != null)
 			{
-				Owner.OnPortalDestroyed();
+				Owner.OnPortalDestroyed(GameObject);
 			}
 			
 			if (LinkedPortal != null && LinkedPortal.IsValid())
