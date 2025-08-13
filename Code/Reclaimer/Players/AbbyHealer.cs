@@ -279,16 +279,37 @@ namespace Reclaimer
 		{
 			if (!Networking.IsHost) return;
 			
-			if (CurrentMana < 40) return;
-			if (MilkPortalCount >= 2) return;
+			Log.Info($"🌀 PlaceMilkPortalRPC called - CurrentMana: {CurrentMana}, MilkPortalCount: {MilkPortalCount}");
+			
+			if (CurrentMana < 40) 
+			{
+				Log.Warning("❌ Not enough mana for portal (need 40)");
+				return;
+			}
+			if (MilkPortalCount >= 2) 
+			{
+				Log.Warning("❌ Portal limit reached (2/2)");
+				return;
+			}
 			
 			CurrentMana -= 40;
 			MilkPortalCount++;
 			
+			Log.Info($"🌀 MilkPortalPrefab assigned: {MilkPortalPrefab != null}, Valid: {MilkPortalPrefab?.IsValid() ?? false}");
+			
 			if (MilkPortalPrefab != null && MilkPortalPrefab.IsValid())
 			{
 				var portal = MilkPortalPrefab.Clone();
-				portal.WorldPosition = WorldPosition;
+				
+				// Place portal where player is looking, not at feet
+				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+				Vector3 lookDirection = camera?.WorldRotation.Forward ?? EyeAngles.ToRotation().Forward;
+				Vector3 portalPosition = WorldPosition + lookDirection * 200f; // 200 units forward
+				portalPosition.z = WorldPosition.z; // Keep at ground level
+				
+				portal.WorldPosition = portalPosition;
+				
+				Log.Info($"🌀 Portal created at position: {portalPosition}, GameObject: {portal.Name}");
 				
 				var portalComponent = portal.Components.GetOrCreate<MilkPortal>();
 				portalComponent.Owner = this;
@@ -298,7 +319,7 @@ namespace Reclaimer
 					// First cast: Place exit portal (Portal A)
 					portalComponent.IsEntryPortal = false;
 					lastPortal = portal;
-					Log.Info("Exit portal (Portal A) placed!");
+					Log.Info("✅ Exit portal (Portal A) placed!");
 				}
 				else if (MilkPortalCount == 2)
 				{
@@ -312,10 +333,14 @@ namespace Reclaimer
 						{
 							portalComponent.LinkedPortal = exitPortalComponent;
 							exitPortalComponent.LinkedPortal = portalComponent;
-							Log.Info("Entry portal (Portal B) placed and linked! Walk on Portal B to teleport to Portal A.");
+							Log.Info("✅ Entry portal (Portal B) placed and linked! Walk on Portal B to teleport to Portal A.");
 						}
 					}
 				}
+			}
+			else
+			{
+				Log.Error("❌ MilkPortalPrefab is null or invalid! Check prefab assignment in inspector.");
 			}
 		}
 		
@@ -388,7 +413,6 @@ namespace Reclaimer
 	public class MilkPortal : Component
 	{
 		[Property] public float Lifetime { get; set; } = 60f;
-		[Property] public float TeleportRadius { get; set; } = 50f;
 		
 		public AbbyHealer Owner { get; set; }
 		public MilkPortal LinkedPortal { get; set; }
@@ -397,6 +421,7 @@ namespace Reclaimer
 		[Sync] public bool IsEntryPortal { get; set; } = false; // true = teleports TO linked portal
 		
 		private float lifetimeTimer;
+		private float teleportCooldown = 0f;
 		
 		protected override void OnStart()
 		{
@@ -415,35 +440,51 @@ namespace Reclaimer
 				return;
 			}
 			
-			// Only entry portals check for teleportation
-			if (IsActive && IsEntryPortal && LinkedPortal != null && LinkedPortal.IsValid())
+			// Update teleport cooldown
+			if (teleportCooldown > 0)
+				teleportCooldown -= Time.Delta;
+			
+			// Use distance-based detection as fallback since trigger events aren't working
+			if (IsActive && IsEntryPortal && LinkedPortal != null && LinkedPortal.IsValid() && teleportCooldown <= 0)
 			{
-				CheckForTeleport();
+				CheckForTeleportDistance();
 			}
 		}
 		
-		void CheckForTeleport()
+		void CheckForTeleportDistance()
 		{
 			var players = Scene.GetAllComponents<TrinityPlayer>()
 				.Where(p => p.IsAlive)
-				.Where(p => Vector3.DistanceBetween(WorldPosition, p.WorldPosition) < TeleportRadius);
+				.Where(p => Vector3.DistanceBetween(WorldPosition, p.WorldPosition) < 100f); // 100 unit trigger radius
 			
 			foreach (var player in players)
 			{
+				Log.Info($"🌀 Player {player.ClassType} is within portal range - teleporting!");
 				TeleportPlayerRPC(player.GameObject.Id);
+				teleportCooldown = 2.0f; // 2 second cooldown to prevent spam
+				break; // Only teleport one player at a time
 			}
 		}
 		
 		[Rpc.Broadcast]
 		void TeleportPlayerRPC(Guid playerId)
 		{
-			if (LinkedPortal == null || !LinkedPortal.IsValid()) return;
+			if (LinkedPortal == null || !LinkedPortal.IsValid()) 
+			{
+				Log.Warning("🌀 TeleportPlayerRPC: No linked portal");
+				return;
+			}
 			
 			var player = Scene.Directory.FindByGuid(playerId)?.Components.Get<TrinityPlayer>();
 			if (player != null)
 			{
-				player.WorldPosition = LinkedPortal.WorldPosition + Vector3.Up * 50f;
-				Log.Info($"{player.ClassType} teleported through milk portal!");
+				Vector3 teleportPos = LinkedPortal.WorldPosition + Vector3.Up * 50f;
+				player.WorldPosition = teleportPos;
+				Log.Info($"🌀 {player.ClassType} teleported through milk portal from {player.WorldPosition} to {teleportPos}!");
+			}
+			else
+			{
+				Log.Warning($"🌀 TeleportPlayerRPC: Could not find player with ID {playerId}");
 			}
 		}
 		
