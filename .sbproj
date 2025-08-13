@@ -29,6 +29,10 @@
     "StartupScene": "scenes/tests/reclaimer/reclaimer_boss_encounter.scene",
     "MapStartupScene": "scenes/tests/reclaimer/reclaimer_boss_encounter.scene",
     "LaunchMode": "Normal",
-    "ControlModes": {}
+    "ControlModes": {
+      "Keyboard": false,
+      "VR": false,
+      "Gamepad": false
+    }
   }
 }

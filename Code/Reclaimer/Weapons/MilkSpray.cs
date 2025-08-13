@@ -168,10 +168,24 @@ namespace Reclaimer
 				return;
 			}
 			
-			// Get spray origin and direction using CAMERA direction (where player is actually looking)
-			var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
-			Vector3 origin = owner.Eye?.WorldPosition ?? GameObject.WorldPosition;
-			Vector3 forward = camera?.WorldRotation.Forward ?? owner.EyeAngles.ToRotation().Forward;
+			// Get spray origin and direction using MOUSE position for horizontal targeting
+			Vector3 origin = owner.WorldPosition + Vector3.Up * 64f; // Chest height instead of eye level
+			Vector3 forward;
+			
+			// Use mouse world position for horizontal spray direction
+			var trinityController = owner.Components.Get<TrinityPlayerController>();
+			var mousePos = trinityController?.GetMouseWorldPosition();
+			if (mousePos.HasValue)
+			{
+				// Calculate horizontal direction from character to mouse position
+				forward = (mousePos.Value - owner.WorldPosition).WithZ(0).Normal;
+			}
+			else
+			{
+				// Fallback to camera horizontal direction
+				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+				forward = camera?.WorldRotation.Forward.WithZ(0).Normal ?? owner.EyeAngles.ToRotation().Forward.WithZ(0).Normal;
+			}
 			
 			// Find all healable entities in range (players + test objects)
 			var allHealableEntities = Scene.GetAllComponents<IReclaimerHealable>()
@@ -230,16 +244,28 @@ namespace Reclaimer
 				Log.Info("MilkSpray: Creating spray effect from prefab");
 				activeSprayEffect = SprayEffectPrefab.Clone();
 				
-				// Position it at player with camera direction (same as fallback)
-				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
-				if (camera != null && owner != null)
+				// Position it at player with mouse direction
+				if (owner != null)
 				{
-					// Use PLAYER position but CAMERA direction
 					Vector3 sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
-					Vector3 sprayDirection = camera.WorldRotation.Forward; // Camera look direction
+					Vector3 sprayDirection;
+					
+					// Use mouse position for spray direction
+					var trinityController = owner.Components.Get<TrinityPlayerController>();
+					var mousePos = trinityController?.GetMouseWorldPosition();
+					if (mousePos.HasValue)
+					{
+						sprayDirection = (mousePos.Value - owner.WorldPosition).WithZ(0).Normal;
+					}
+					else
+					{
+						// Fallback to camera direction
+						var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+						sprayDirection = camera?.WorldRotation.Forward.WithZ(0).Normal ?? owner.EyeAngles.ToRotation().Forward.WithZ(0).Normal;
+					}
 					
 					activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f;
-					activeSprayEffect.WorldRotation = camera.WorldRotation;
+					activeSprayEffect.WorldRotation = Rotation.LookAt(sprayDirection, Vector3.Up);
 					
 					Log.Info($"Prefab positioned at player: {activeSprayEffect.WorldPosition}");
 				}
@@ -315,18 +341,25 @@ namespace Reclaimer
 			// Only update if we're actively spraying and have a valid effect
 			if (!isSpraying || activeSprayEffect == null || !activeSprayEffect.IsValid()) return;
 			
-			// Get camera for current look direction
-			var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+			Vector3 sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
+			Vector3 sprayDirection;
 			
-			if (camera != null)
+			// Use mouse position for spray direction
+			var trinityController = owner.Components.Get<TrinityPlayerController>();
+			var mousePos = trinityController?.GetMouseWorldPosition();
+			if (mousePos.HasValue)
 			{
-				// Update position: PLAYER position + CAMERA direction (third person fix)
-				Vector3 sprayOrigin = owner.WorldPosition + Vector3.Up * 64f; // Player chest height
-				Vector3 sprayDirection = camera.WorldRotation.Forward; // Camera look direction
-				
-				activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f;
-				activeSprayEffect.WorldRotation = camera.WorldRotation; // Use camera's exact rotation
+				sprayDirection = (mousePos.Value - owner.WorldPosition).WithZ(0).Normal;
 			}
+			else
+			{
+				// Fallback to camera direction
+				var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+				sprayDirection = camera?.WorldRotation.Forward.WithZ(0).Normal ?? owner.EyeAngles.ToRotation().Forward.WithZ(0).Normal;
+			}
+			
+			activeSprayEffect.WorldPosition = sprayOrigin + sprayDirection * 20f;
+			activeSprayEffect.WorldRotation = Rotation.LookAt(sprayDirection, Vector3.Up);
 		}
 		
 	

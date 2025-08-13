@@ -333,12 +333,23 @@ namespace Reclaimer
 			CurrentMana -= 40;
 			Log.Info($"Host consumed 40 mana, remaining: {CurrentMana}");
 			
-			// Calculate portal position - always place on ground where player is looking
-			var lookDir = EyeAngles.ToRotation();
+			// Calculate portal position - place at mouse world position
+			var trinityController = Components.Get<TrinityPlayerController>();
+			var mousePos = trinityController?.GetMouseWorldPosition();
+			Vector3 targetPosition;
 			
-			// First, find where the player is looking horizontally
-			var horizontalDistance = 200f; // Place portal 200 units in front of player
-			var targetPosition = WorldPosition + lookDir.Forward * horizontalDistance;
+			if (mousePos.HasValue)
+			{
+				// Use exact mouse world position
+				targetPosition = mousePos.Value;
+			}
+			else
+			{
+				// Fallback to fixed distance in look direction
+				var targetDirection = EyeAngles.ToRotation().Forward.WithZ(0).Normal;
+				var horizontalDistance = 200f;
+				targetPosition = WorldPosition + targetDirection * horizontalDistance;
+			}
 			
 			// Then raycast down from high above that position to find the ground
 			var rayStart = new Vector3(targetPosition.x, targetPosition.y, targetPosition.z + 1000f); // Start high above

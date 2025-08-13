@@ -17,7 +17,7 @@ namespace Reclaimer
 		[Property] public bool RandomizePerfectZone { get; set; } = false; // Set to true for random positioning
 		
 		// UI Position Configuration
-		[Property] public string BarVerticalPosition { get; set; } = "55%"; // CSS position (55%, 200px, etc.)
+		[Property] public string BarVerticalPosition { get; set; } = "75%"; // CSS position (75% = lower on screen)
 		[Property] public string BarHorizontalPosition { get; set; } = "50%"; // CSS position (50% = center)
 		
 		// Reload state

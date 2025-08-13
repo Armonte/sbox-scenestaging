@@ -29,7 +29,7 @@ namespace Reclaimer
 		
 		[Property] public float SpawnForward { get; set; } = 50f; // How far forward from player
 		[Property] public float SpawnRight { get; set; } = 0f; // How far right from player (negative = left)  
-		[Property] public float SpawnUp { get; set; } = 40f; // How far up from player
+		[Property] public float SpawnUp { get; set; } = 64f; // How far up from player (chest height)
 		[Property] public float UpwardForce { get; set; } = 200f; // Upward velocity component (like Gun.cs)
 		
 		[Property, Group("Active Reload")]
@@ -186,11 +186,25 @@ namespace Reclaimer
 				return;
 			}
 			
-			// SIMPLIFIED: Use Gun.cs approach that actually works
-			var lookDir = owner.EyeAngles.ToRotation();
+			// Use mouse world position for targeting
+			var trinityController = owner.Components.Get<TrinityPlayerController>();
+			var mousePos = trinityController?.GetMouseWorldPosition();
+			Vector3 direction;
 			
-			// Simple spawn position (matching Gun.cs pattern)
-			var pos = owner.WorldPosition + Vector3.Up * SpawnUp + lookDir.Forward.WithZ(0.0f) * SpawnForward;
+			if (mousePos.HasValue)
+			{
+				// Calculate horizontal direction from character to mouse position
+				var toMouse = (mousePos.Value - owner.WorldPosition).WithZ(0).Normal;
+				direction = toMouse;
+			}
+			else
+			{
+				// Fallback to camera forward direction (horizontal)
+				direction = owner.EyeAngles.ToRotation().Forward.WithZ(0).Normal;
+			}
+			
+			// Spawn position offset from character
+			var pos = owner.WorldPosition + Vector3.Up * SpawnUp + direction * SpawnForward;
 			
 			// Clone prefab
 			var cork = CorkProjectilePrefab.Clone(pos);
@@ -202,8 +216,8 @@ namespace Reclaimer
 			
 			cork.Enabled = true;
 			
-			// SIMPLIFIED: Direct velocity like Gun.cs (no complex angles)
-			var velocity = lookDir.Forward * ProjectileSpeed + Vector3.Up * UpwardForce;
+			// Fire horizontally towards mouse with slight upward arc
+			var velocity = direction * ProjectileSpeed + Vector3.Up * UpwardForce;
 			
 			// Set up the cork projectile
 			var corkComponent = cork.Components.Get<CorkProjectile>();
