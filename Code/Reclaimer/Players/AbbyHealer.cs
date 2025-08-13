@@ -99,16 +99,25 @@ namespace Reclaimer
 				return;
 			}
 			
+			// Only process portal logic on non-proxy (local player)
+			if (IsProxy) return;
+			
+			Log.Info($"UseAbility1 called by {GameObject.Name} (IsProxy: {IsProxy})");
+			
 			// Simple approach like Cork Gun: pass portal type as parameter
 			if (!IsPortalRecasting)
 			{
-				PlaceMilkPortalRPC(true); // true = entry portal
+				// Place first portal (entry)
+				Log.Info($"Placing ENTRY portal for {GameObject.Name}");
+				PlaceMilkPortalRPC(true);
 				IsPortalRecasting = true;
 				portalRecastTimer = 3.0f;
 			}
 			else if (portalRecastTimer > 0)
 			{
-				PlaceMilkPortalRPC(false); // false = exit portal
+				// Place second portal (exit)
+				Log.Info($"Placing EXIT portal for {GameObject.Name}");
+				PlaceMilkPortalRPC(false);
 				IsPortalRecasting = false;
 				portalRecastTimer = 0f;
 			}
@@ -309,17 +318,20 @@ namespace Reclaimer
 		[Rpc.Broadcast]
 		void PlaceMilkPortalRPC(bool isEntryPortal)
 		{
-			// Host consumes mana (like Cork Gun consuming ammo)
-			if (Networking.IsHost)
-			{
-				CurrentMana -= 40;
-			}
+			Log.Info($"PlaceMilkPortalRPC called: {(isEntryPortal ? "ENTRY" : "EXIT")} for {GameObject.Name} (IsHost: {Networking.IsHost})");
+			
+			// Only host should process this RPC to prevent duplicates
+			if (!Networking.IsHost) return;
 			
 			if (MilkPortalPrefab == null || !MilkPortalPrefab.IsValid())
 			{
 				Log.Error("MilkPortalPrefab is null or invalid!");
 				return;
 			}
+			
+			// Host handles game state changes and portal creation
+			CurrentMana -= 40;
+			Log.Info($"Host consumed 40 mana, remaining: {CurrentMana}");
 			
 			// Calculate portal position (same as Cork Gun calculates projectile position)
 			var lookDir = EyeAngles.ToRotation();
@@ -529,12 +541,13 @@ namespace Reclaimer
 		
 		void CheckForTeleportDistance()
 		{
-			var players = Scene.GetAllComponents<TrinityPlayer>()
+			var playersInRange = Scene.GetAllComponents<TrinityPlayer>()
 				.Where(p => p.IsAlive)
 				.Where(p => Vector3.DistanceBetween(WorldPosition, p.WorldPosition) < 100f); // 100 unit trigger radius
 			
-			foreach (var player in players)
+			foreach (var player in playersInRange)
 			{
+				Log.Info($"Teleporting {player.GameObject.Name} through portal!");
 				TeleportPlayerRPC(player.GameObject.Id);
 				teleportCooldown = 2.0f; // 2 second cooldown to prevent spam
 				break; // Only teleport one player at a time
@@ -549,14 +562,28 @@ namespace Reclaimer
 			var player = Scene.Directory.FindByGuid(playerId)?.Components.Get<TrinityPlayer>();
 			if (player != null)
 			{
-				// Simple teleportation to ground level at exit portal
-				Vector3 teleportPos = LinkedPortal.WorldPosition;
-				teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
+				// Only host should modify player positions
+				if (Networking.IsHost)
+				{
+					// Simple teleportation to ground level at exit portal
+					Vector3 teleportPos = LinkedPortal.WorldPosition;
+					teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
+					
+					// Use CharacterController for proper networking
+					var cc = player.CharacterController;
+					if (cc != null && cc.IsValid())
+					{
+						cc.WorldPosition = teleportPos;
+						Log.Info($"{player.ClassType} teleported through milk portal using CharacterController");
+					}
+					else
+					{
+						player.WorldPosition = teleportPos;
+						Log.Info($"{player.ClassType} teleported through milk portal using direct position");
+					}
+				}
 				
-				player.WorldPosition = teleportPos;
-				Log.Info($"{player.ClassType} teleported through milk portal");
-				
-				// Destroy both portals (like Cork Gun destroys projectile on hit)
+				// Destroy both portals on all clients (visual cleanup)
 				DestroyPortalPair();
 			}
 		}
