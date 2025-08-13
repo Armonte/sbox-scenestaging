@@ -333,22 +333,33 @@ namespace Reclaimer
 			CurrentMana -= 40;
 			Log.Info($"Host consumed 40 mana, remaining: {CurrentMana}");
 			
-			// Calculate portal position (same as Cork Gun calculates projectile position)
+			// Calculate portal position - always place on ground where player is looking
 			var lookDir = EyeAngles.ToRotation();
-			var rayStart = WorldPosition + Vector3.Up * 64f;
-			var rayEnd = rayStart + lookDir.Forward * 1000f;
 			
-			// Simple raycast to ground
-			var trace = Scene.Trace.Ray(rayStart, rayEnd).Run();
+			// First, find where the player is looking horizontally
+			var horizontalDistance = 200f; // Place portal 200 units in front of player
+			var targetPosition = WorldPosition + lookDir.Forward * horizontalDistance;
+			
+			// Then raycast down from high above that position to find the ground
+			var rayStart = new Vector3(targetPosition.x, targetPosition.y, targetPosition.z + 1000f); // Start high above
+			var rayEnd = new Vector3(targetPosition.x, targetPosition.y, targetPosition.z - 1000f); // Go far down
+			
+			var trace = Scene.Trace.Ray(rayStart, rayEnd)
+				.WithoutTags("player") // Ignore players
+				.Run();
+			
 			Vector3 portalPosition;
 			if (trace.Hit)
 			{
-				portalPosition = trace.HitPosition + Vector3.Up * 10f;
+				// Place portal slightly above the ground
+				portalPosition = trace.HitPosition + Vector3.Up * 5f;
+				Log.Info($"Portal placed on ground at {portalPosition} (hit: {trace.HitPosition})");
 			}
 			else
 			{
-				portalPosition = WorldPosition + lookDir.Forward * 200f;
-				portalPosition.z = WorldPosition.z;
+				// Fallback: use player's ground level
+				portalPosition = new Vector3(targetPosition.x, targetPosition.y, WorldPosition.z);
+				Log.Warning($"No ground found, using player level: {portalPosition}");
 			}
 			
 			// Clone portal (exactly like Cork Gun clones projectile)
