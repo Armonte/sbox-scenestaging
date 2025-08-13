@@ -498,27 +498,35 @@ namespace Reclaimer
 		}
 		
 		[Rpc.Owner]
-		public void TeleportToPositionRPC(Vector3 teleportPos)
+		public void TeleportToPositionRPC(Vector3 teleportPos, Vector3 preservedVelocity)
 		{
 			// This RPC is called on the specific player who needs to teleport
-			// They handle their own position change for proper networking
-			Log.Info($"TeleportToPositionRPC: {GameObject.Name} teleporting to {teleportPos}");
+			// They handle their own position change and velocity preservation for proper networking
+			Log.Info($"TeleportToPositionRPC: {GameObject.Name} teleporting to {teleportPos} with velocity {preservedVelocity}");
 			
 			var cc = this.CharacterController;
 			if (cc != null && cc.IsValid())
 			{
 				Vector3 oldPos = cc.WorldPosition;
+				Vector3 oldVel = cc.Velocity;
+				
+				// Set new position
 				cc.WorldPosition = teleportPos;
+				
+				// Preserve velocity for momentum conservation
+				cc.Velocity = preservedVelocity;
+				
 				Log.Info($"SELF: CharacterController position changed from {oldPos} to {cc.WorldPosition}");
+				Log.Info($"SELF: Velocity preserved from {oldVel} to {cc.Velocity}");
 			}
 			else
 			{
 				Vector3 oldPos = WorldPosition;
 				WorldPosition = teleportPos;
-				Log.Info($"SELF: Direct position changed from {oldPos} to {WorldPosition}");
+				Log.Info($"SELF: Direct position changed from {oldPos} to {WorldPosition} (no velocity preservation without CharacterController)");
 			}
 			
-			Log.Info($"{this.ClassType} teleported through milk portal (self-handled)");
+			Log.Info($"{this.ClassType} teleported through milk portal with momentum preserved!");
 		}
 
 		protected override void OnDestroy()
@@ -588,11 +596,20 @@ namespace Reclaimer
 				Vector3 teleportPos = LinkedPortal.WorldPosition;
 				teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
 				
+				// Capture player's current velocity for preservation
+				Vector3 playerVelocity = Vector3.Zero;
+				var cc = player.CharacterController;
+				if (cc != null && cc.IsValid())
+				{
+					playerVelocity = cc.Velocity;
+					Log.Info($"Captured velocity: {playerVelocity} for {player.GameObject.Name}");
+				}
+				
 				// Call teleport on the player directly (they handle their own teleportation)
 				var abbyHealer = player as AbbyHealer;
 				if (abbyHealer != null)
 				{
-					abbyHealer.TeleportToPositionRPC(teleportPos);
+					abbyHealer.TeleportToPositionRPC(teleportPos, playerVelocity);
 				}
 				else
 				{
