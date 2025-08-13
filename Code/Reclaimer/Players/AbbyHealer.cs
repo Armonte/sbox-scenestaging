@@ -486,6 +486,30 @@ namespace Reclaimer
 			Log.Info("Extensible HUD created - will show Cork Revolver ammo, milk status, and class-specific icons!");
 		}
 		
+		[Rpc.Owner]
+		public void TeleportToPositionRPC(Vector3 teleportPos)
+		{
+			// This RPC is called on the specific player who needs to teleport
+			// They handle their own position change for proper networking
+			Log.Info($"TeleportToPositionRPC: {GameObject.Name} teleporting to {teleportPos}");
+			
+			var cc = this.CharacterController;
+			if (cc != null && cc.IsValid())
+			{
+				Vector3 oldPos = cc.WorldPosition;
+				cc.WorldPosition = teleportPos;
+				Log.Info($"SELF: CharacterController position changed from {oldPos} to {cc.WorldPosition}");
+			}
+			else
+			{
+				Vector3 oldPos = WorldPosition;
+				WorldPosition = teleportPos;
+				Log.Info($"SELF: Direct position changed from {oldPos} to {WorldPosition}");
+			}
+			
+			Log.Info($"{this.ClassType} teleported through milk portal (self-handled)");
+		}
+
 		protected override void OnDestroy()
 		{
 			if (hudObject != null && hudObject.IsValid)
@@ -548,11 +572,31 @@ namespace Reclaimer
 			foreach (var player in playersInRange)
 			{
 				Log.Info($"Teleporting {player.GameObject.Name} through portal!");
-				TeleportPlayerRPC(player.GameObject.Id);
+				
+				// Calculate teleport position
+				Vector3 teleportPos = LinkedPortal.WorldPosition;
+				teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
+				
+				// Call teleport on the player directly (they handle their own teleportation)
+				var abbyHealer = player as AbbyHealer;
+				if (abbyHealer != null)
+				{
+					abbyHealer.TeleportToPositionRPC(teleportPos);
+				}
+				else
+				{
+					// Fallback for non-Abby players
+					TeleportPlayerRPC(player.GameObject.Id);
+				}
+				
+				// Destroy portals after teleportation (broadcast to all clients)
+				DestroyPortalPair();
+				
 				teleportCooldown = 2.0f; // 2 second cooldown to prevent spam
 				break; // Only teleport one player at a time
 			}
 		}
+		
 		
 		[Rpc.Broadcast]
 		void TeleportPlayerRPC(Guid playerId)
@@ -569,22 +613,27 @@ namespace Reclaimer
 					Vector3 teleportPos = LinkedPortal.WorldPosition;
 					teleportPos.z = LinkedPortal.WorldPosition.z + 10f;
 					
+					Log.Info($"HOST: Teleporting {player.GameObject.Name} from {player.WorldPosition} to {teleportPos}");
+					
 					// Use CharacterController for proper networking
 					var cc = player.CharacterController;
 					if (cc != null && cc.IsValid())
 					{
+						Vector3 oldPos = cc.WorldPosition;
 						cc.WorldPosition = teleportPos;
-						Log.Info($"{player.ClassType} teleported through milk portal using CharacterController");
+						Log.Info($"HOST: CharacterController position changed from {oldPos} to {cc.WorldPosition}");
 					}
 					else
 					{
+						Vector3 oldPos = player.WorldPosition;
 						player.WorldPosition = teleportPos;
-						Log.Info($"{player.ClassType} teleported through milk portal using direct position");
+						Log.Info($"HOST: Direct position changed from {oldPos} to {player.WorldPosition}");
 					}
 				}
-				
-				// Destroy both portals on all clients (visual cleanup)
-				DestroyPortalPair();
+				else
+				{
+					Log.Info($"CLIENT: Received teleport RPC for {player.GameObject.Name} but not processing (not host)");
+				}
 			}
 		}
 		
