@@ -3514,7 +3514,7 @@
               "OnComponentUpdate": null,
               "SprayEffectPrefab": {
                 "_type": "gameobject",
-                "prefab": "templates/gameobject/particle - sprayer.prefab"
+                "prefab": "templates/gameobject/particles - smoke.prefab"
               },
               "SpraySound": "pop gun shot.sound"
             }
@@ -6098,6 +6098,35 @@
         {
           "__type": "Reclaimer.TimedDestroy",
           "__guid": "73db88cf-776f-43cf-aae4-71c620aa590f",
+          "__enabled": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "16c70f07-c80d-4ef9-878a-e686893f6b79",
+      "__version": 1,
+      "Flags": 0,
+      "Name": "CubeDestructionEffect",
+      "Position": "1003.268,222.1495,80.60594",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkInterpolation": true,
+      "NetworkOrphaned": 0,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Reclaimer.TimedDestroy",
+          "__guid": "a9f0afd2-233a-49a6-9c20-8e11ca5e73b8",
           "__enabled": true,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,

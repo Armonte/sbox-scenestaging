@@ -168,16 +168,10 @@ namespace Reclaimer
 				return;
 			}
 			
-			// Get spray origin and direction
-			Vector3 origin = GameObject.WorldPosition;
-			Vector3 forward = GameObject.WorldRotation.Forward;
-			
-			// Use owner's eye position and angles if available
-			if (owner.Eye != null)
-			{
-				origin = owner.Eye.WorldPosition;
-				forward = owner.EyeAngles.ToRotation().Forward;
-			}
+			// Get spray origin and direction using CAMERA direction (where player is actually looking)
+			var camera = Scene.GetAllComponents<CameraComponent>().FirstOrDefault();
+			Vector3 origin = owner.Eye?.WorldPosition ?? GameObject.WorldPosition;
+			Vector3 forward = camera?.WorldRotation.Forward ?? owner.EyeAngles.ToRotation().Forward;
 			
 			// Find all healable entities in range (players + test objects)
 			var allHealableEntities = Scene.GetAllComponents<IReclaimerHealable>()
